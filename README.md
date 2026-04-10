@@ -30,7 +30,12 @@ Open http://localhost:3000 → create a campaign → click the three pipeline bu
 
 ## Tracker integration
 
-`src/lib/tracker.ts` is currently **stubbed**. It logs the handoff and marks drafts as `handed_off` in the DB but doesn't talk to the real tracker yet. To wire it up, fill in the `fetch()` block in `pushToTracker` with the tracker's API shape and set `TRACKER_BASE_URL` / `TRACKER_API_KEY`.
+`src/lib/tracker.ts` sends drafts via the email tracker at `https://email.buggers.online`:
+
+1. Logs in with `TRACKER_EMAIL` / `TRACKER_PASSWORD` (caches access token in memory, re-logs on 401).
+2. POSTs to `/api/gmail/send` as multipart form data — the tracker handles Gmail OAuth send + open-pixel injection.
+
+Prereq: the tracker account must already have its Gmail connected (one-time OAuth done in the tracker UI at email.buggers.online).
 
 ## Phase 2 (not yet built)
 
