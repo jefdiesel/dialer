@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# dialer
 
-## Getting Started
+Outreach pipeline for selling AI consulting at $200/hr.
 
-First, run the development server:
+## Pipeline
+
+1. **Discover** — Google Places Text Search by niche + city → leads
+2. **Enrich** — fetch each lead's website, extract email + business signals, score AI fit
+3. **Personalize** — Claude (Sonnet 4.6) writes a per-lead subject + body
+4. **Review** — campaign dashboard to edit/approve/reject drafts
+5. **Hand off** — push approved drafts to the existing tracker (Gmail OAuth + open pixel). Sending and tracking happen there, not here.
+
+## Stack
+
+- Next.js 16 (App Router) + TypeScript + Tailwind v4
+- Prisma 7 + SQLite (via `@prisma/adapter-better-sqlite3`)
+- Anthropic SDK
+- Google Places API (New)
+
+## Setup
 
 ```bash
+npm install
+cp .env.example .env  # fill in keys
+npx prisma migrate dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 → create a campaign → click the three pipeline buttons in order.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tracker integration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`src/lib/tracker.ts` is currently **stubbed**. It logs the handoff and marks drafts as `handed_off` in the DB but doesn't talk to the real tracker yet. To wire it up, fill in the `fetch()` block in `pushToTracker` with the tracker's API shape and set `TRACKER_BASE_URL` / `TRACKER_API_KEY`.
 
-## Learn More
+## Phase 2 (not yet built)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- LinkedIn DM drafts (manual paste)
+- Contact-form fallback via Playwright
+- TikTok ads (separate workstream — paid broadcast, not 1:1)

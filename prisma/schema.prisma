@@ -1,0 +1,72 @@
+// Dialer schema — outreach pipeline for AI consulting
+// Tracking (opens/clicks/replies) is handled by the external tracker, NOT here.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  niche       String   // e.g. "dental clinics", "law firms"
+  location    String   // e.g. "Austin, TX"
+  pitch       String   // free-form: what we're offering, hourly rate, hooks
+  status      String   @default("draft") // draft | discovering | enriching | ready | sending | done
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  leads       Lead[]
+}
+
+model Lead {
+  id           String    @id @default(cuid())
+  campaignId   String
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Discovery (Google Places)
+  placeId      String?   @unique
+  businessName String
+  website      String?
+  phone        String?
+  address      String?
+  category     String?
+
+  // Enrichment
+  enrichedAt   DateTime?
+  primaryEmail String?
+  ownerName    String?
+  enriched     String?   // JSON blob: signals, tech stack, pages scraped
+  fitScore     Int?      // 0-100, how good of an AI-consult fit
+
+  // Pipeline state
+  status       String    @default("new") // new | enriched | drafted | approved | handed_off | rejected | failed
+  notes        String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  drafts       Draft[]
+
+  @@index([campaignId, status])
+}
+
+model Draft {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel    String   @default("email") // email | linkedin | contact_form
+  subject    String?
+  body       String
+  model      String?  // which Claude model produced it
+  status     String   @default("draft") // draft | approved | handed_off | failed
+  handoffRef String?  // ID returned by tracker after push
+  handoffAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([leadId])
+}
