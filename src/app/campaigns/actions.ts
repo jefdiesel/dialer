@@ -58,6 +58,101 @@ export async function approveAndPushDraft(draftId: string) {
   if (!result.ok) throw new Error(result.error);
 }
 
+export async function importLeadsFromCsv(campaignId: string, formData: FormData) {
+  const csv = String(formData.get("csv") ?? "").trim();
+  if (!csv) throw new Error("paste some CSV first");
+
+  // Minimal CSV parser: header row, comma-separated, quoted strings supported.
+  // Recognized headers (case-insensitive, any subset): name/business,
+  // website/url, email, phone, address, category.
+  const rows = parseCsv(csv);
+  if (rows.length < 2) throw new Error("need a header row + at least one data row");
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+
+  const idx = (...names: string[]) => {
+    for (const n of names) {
+      const i = header.indexOf(n);
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const iName = idx("name", "business", "businessname", "business name");
+  const iSite = idx("website", "url", "site");
+  const iEmail = idx("email");
+  const iPhone = idx("phone", "telephone");
+  const iAddr = idx("address");
+  const iCat = idx("category", "type");
+
+  if (iName < 0) throw new Error("CSV must include a 'name' or 'business' column");
+
+  let inserted = 0;
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const businessName = (row[iName] ?? "").trim();
+    if (!businessName) continue;
+    const website = iSite >= 0 ? (row[iSite] ?? "").trim() || null : null;
+    const email = iEmail >= 0 ? (row[iEmail] ?? "").trim() || null : null;
+
+    await prisma.lead.create({
+      data: {
+        campaignId,
+        businessName,
+        website,
+        primaryEmail: email,
+        phone: iPhone >= 0 ? (row[iPhone] ?? "").trim() || null : null,
+        address: iAddr >= 0 ? (row[iAddr] ?? "").trim() || null : null,
+        category: iCat >= 0 ? (row[iCat] ?? "").trim() || null : null,
+        // If we already have an email from the CSV, mark as enriched so it
+        // can skip discovery and go straight to personalization.
+        status: email ? "enriched" : "new",
+      },
+    });
+    inserted++;
+  }
+  revalidatePath(`/campaigns/${campaignId}`);
+  return inserted;
+}
+
+function parseCsv(input: string): string[][] {
+  const rows: string[][] = [];
+  let cur: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (input[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      cur.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && input[i + 1] === "\n") i++;
+      cur.push(field);
+      rows.push(cur);
+      cur = [];
+      field = "";
+    } else {
+      field += ch;
+    }
+  }
+  if (field.length > 0 || cur.length > 0) {
+    cur.push(field);
+    rows.push(cur);
+  }
+  return rows.filter((r) => r.some((c) => c.trim().length > 0));
+}
+
 export async function rejectLead(leadId: string) {
   await prisma.lead.update({ where: { id: leadId }, data: { status: "rejected" } });
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });

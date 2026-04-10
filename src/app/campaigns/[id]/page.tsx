@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
   approveAndPushDraft,
+  importLeadsFromCsv,
   regenerateDraftForLead,
   rejectLead,
   runDiscovery,
@@ -56,6 +57,34 @@ export default async function CampaignDetailPage({
           </pre>
         </details>
       </header>
+
+      <details className="mb-4 rounded border border-zinc-200 bg-white p-4 text-xs dark:border-zinc-800 dark:bg-zinc-950">
+        <summary className="cursor-pointer font-medium">
+          Import leads from CSV (alternative to discovery)
+        </summary>
+        <form
+          action={async (fd: FormData) => {
+            "use server";
+            await importLeadsFromCsv(campaign.id, fd);
+          }}
+          className="mt-3 space-y-2"
+        >
+          <p className="text-zinc-500">
+            Header row required. Recognized columns:{" "}
+            <code>name, website, email, phone, address, category</code>. Rows with
+            an email skip enrichment and go straight to drafting.
+          </p>
+          <textarea
+            name="csv"
+            rows={6}
+            placeholder={`name,website,email\nAcme Plumbing,https://acme.example,info@acme.example`}
+            className="w-full rounded border border-zinc-300 px-2 py-1 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <button className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
+            Import CSV
+          </button>
+        </form>
+      </details>
 
       <section className="mb-6 flex flex-wrap gap-3">
         <form action={runDiscovery.bind(null, campaign.id)}>

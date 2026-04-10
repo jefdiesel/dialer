@@ -1,29 +1,26 @@
-// Personalization: takes an enriched lead + a campaign pitch and produces
-// a subject line + 1-paragraph cold email pitching the AI consult.
+// Personalization via the local `claude` CLI (Claude Code), so it runs on the
+// user's Max subscription instead of API credits. We pipe the prompt over
+// stdin and parse the streamed JSON envelope.
 //
-// Uses Claude Sonnet 4.6 — capable enough for cold-email copy, much cheaper
-// than Opus for bulk runs.
+// Why CLI and not the SDK: the Anthropic SDK only authenticates with an API
+// key. The Claude Code CLI authenticates via OAuth/keychain (the Max plan).
 
-import Anthropic from "@anthropic-ai/sdk";
+import { spawn } from "node:child_process";
 import { prisma } from "./db";
-import { env } from "./env";
 
-const MODEL = "claude-sonnet-4-6";
-
-function client() {
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-}
+const CLAUDE_BIN = process.env.CLAUDE_BIN || "claude";
+const MODEL = "sonnet"; // sonnet 4.6, fast + cheap on quota
 
 const SYSTEM = `You write cold outreach emails for an AI consultant who sells $200/hr engagements to small and mid-sized businesses.
 
 RULES:
-- Output ONLY a JSON object: {"subject": "...", "body": "..."}. No prose, no code fences.
-- Subject: max 60 chars, lowercase-friendly, NOT clickbait, NOT salesy. Reference something specific from the business.
-- Body: 3-5 short sentences, ~80 words max. Plain text. No greeting beyond "Hi {firstName}," (or "Hi there," if no name). No signature — that gets appended later.
+- Output ONLY a JSON object: {"subject": "...", "body": "..."}. No prose, no code fences, no preamble.
+- Subject: max 60 chars, NOT clickbait, NOT salesy. Reference something specific from the business.
+- Body: 3-5 short sentences, ~80 words max. Plain text. Greeting "Hi {firstName}," or "Hi there," if no name. No signature — that gets appended later.
 - Open with one specific observation about THEIR business pulled from the context (not "I noticed your website" — name the actual thing).
-- One sentence connecting that observation to a concrete way AI could help them (be specific: "automate intake forms", "draft replies to Google reviews", etc.). Avoid buzzwords like "leverage", "synergy", "transform".
+- One sentence connecting that observation to a concrete way AI could help them (e.g. "automate intake forms", "draft replies to Google reviews"). Avoid buzzwords like "leverage", "synergy", "transform".
 - One sentence with the soft ask: a 30-min paid consult at $200/hr to scope it out. Make the price visible — it filters tire-kickers.
-- NEVER fabricate facts. If the context is thin, keep the observation generic but honest ("your booking page asks people to call to schedule...").
+- NEVER fabricate facts. If the context is thin, keep the observation generic but honest.
 - Sound like a human writing one email, not a template.`;
 
 export type PersonalizedDraft = {
@@ -38,6 +35,66 @@ type LeadForPersonalization = {
   ownerName: string | null;
   enriched: string | null;
 };
+
+function callClaude(userPrompt: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Strip ANTHROPIC_API_KEY from the child env so the CLI is forced to use
+    // the Max sub OAuth credentials (matches the user's shell alias).
+    const env = { ...process.env };
+    delete env.ANTHROPIC_API_KEY;
+    delete env.ANTHROPIC_BASE_URL;
+
+    const child = spawn(
+      CLAUDE_BIN,
+      [
+        "-p",
+        "--model",
+        MODEL,
+        "--output-format",
+        "json",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--system-prompt",
+        SYSTEM,
+      ],
+      { env, stdio: ["pipe", "pipe", "pipe"] },
+    );
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (c) => (stdout += c.toString()));
+    child.stderr.on("data", (c) => (stderr += c.toString()));
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`claude CLI exit ${code}: ${stderr.slice(0, 300)}`));
+        return;
+      }
+      try {
+        // The CLI emits a JSON array of events; the final {type:"result"} event
+        // has a `result` field with the assistant's text.
+        const events = JSON.parse(stdout);
+        if (!Array.isArray(events)) {
+          reject(new Error(`unexpected CLI output: ${stdout.slice(0, 200)}`));
+          return;
+        }
+        const finalEvent = events.find(
+          (e: any) => e?.type === "result" && typeof e.result === "string",
+        );
+        if (!finalEvent) {
+          reject(new Error(`no result event in CLI output: ${stdout.slice(0, 200)}`));
+          return;
+        }
+        resolve(finalEvent.result as string);
+      } catch (e) {
+        reject(new Error(`failed to parse CLI output: ${(e as Error).message}`));
+      }
+    });
+
+    child.stdin.write(userPrompt);
+    child.stdin.end();
+  });
+}
 
 export async function generateDraft(
   lead: LeadForPersonalization,
@@ -62,19 +119,7 @@ ${sample.slice(0, 2500)}
 
 Now write the JSON.`;
 
-  const c = client();
-  const res = await c.messages.create({
-    model: MODEL,
-    max_tokens: 600,
-    system: SYSTEM,
-    messages: [{ role: "user", content: userMsg }],
-  });
-
-  const text = res.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("");
-
+  const text = await callClaude(userMsg);
   const parsed = safeJson(text);
   if (!parsed?.subject || !parsed?.body) {
     throw new Error(`personalization returned malformed JSON: ${text.slice(0, 200)}`);
@@ -83,7 +128,6 @@ Now write the JSON.`;
 }
 
 function safeJson(s: string): any {
-  // Strip code fences if the model added them despite instructions.
   const cleaned = s
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -91,7 +135,6 @@ function safeJson(s: string): any {
   try {
     return JSON.parse(cleaned);
   } catch {
-    // Fall back to extracting the first { ... } block.
     const m = cleaned.match(/\{[\s\S]*\}/);
     if (!m) return null;
     try {
@@ -120,7 +163,7 @@ export async function personalizeLead(leadId: string): Promise<void> {
       channel: "email",
       subject: draft.subject,
       body: draft.body,
-      model: MODEL,
+      model: `cli:${MODEL}`,
       status: "draft",
     },
   });
@@ -130,7 +173,9 @@ export async function personalizeLead(leadId: string): Promise<void> {
   });
 }
 
-export async function personalizeCampaign(campaignId: string): Promise<{ ok: number; failed: number }> {
+export async function personalizeCampaign(
+  campaignId: string,
+): Promise<{ ok: number; failed: number }> {
   const leads = await prisma.lead.findMany({
     where: { campaignId, status: "enriched" },
   });

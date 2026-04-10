@@ -7,16 +7,10 @@ function required(name: string): string {
 }
 
 export const env = {
-  get ANTHROPIC_API_KEY() {
-    return required("ANTHROPIC_API_KEY");
-  },
   get GOOGLE_PLACES_API_KEY() {
     return required("GOOGLE_PLACES_API_KEY");
   },
   get TRACKER_BASE_URL() {
-    return process.env.TRACKER_BASE_URL ?? "";
-  },
-  get TRACKER_API_KEY() {
-    return process.env.TRACKER_API_KEY ?? "";
+    return process.env.TRACKER_BASE_URL ?? "https://email.buggers.online";
   },
 };
