@@ -14,7 +14,12 @@ export default async function CampaignsPage() {
     <div className="mx-auto max-w-4xl px-6 py-10">
       <header className="mb-8 flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
-        <span className="text-sm text-zinc-500">{campaigns.length} total</span>
+        <div className="flex items-baseline gap-4 text-sm">
+          <Link href="/playbooks" className="text-zinc-500 hover:underline">
+            playbooks →
+          </Link>
+          <span className="text-zinc-500">{campaigns.length} total</span>
+        </div>
       </header>
 
       <section className="mb-10 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">

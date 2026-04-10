@@ -54,6 +54,23 @@ model Lead {
   @@index([campaignId, status])
 }
 
+model Playbook {
+  id                  String   @id @default(cuid())
+  industrySlug        String   @unique // e.g. "dental-clinics", "law-firms"
+  name                String              // Human-readable: "Dental Clinics"
+  summary             String              // 1-2 sentence description
+  markdown            String              // Full playbook content — the consult deliverable
+  top3UseCases        String              // JSON: [{title, painPoint, capability}] — fed to personalizer
+  citations           String              // JSON: [{title, url, quote}]
+  status              String   @default("draft") // draft | published
+  researchTranscript  String?             // raw CLI output for audit
+  model               String?             // model used to generate
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status])
+}
+
 model Draft {
   id         String   @id @default(cuid())
   leadId     String
