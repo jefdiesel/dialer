@@ -70,9 +70,9 @@ export default async function CampaignDetailPage({
           className="mt-3 space-y-2"
         >
           <p className="text-zinc-500">
-            Header row required. Recognized columns:{" "}
-            <code>name, website, email, phone, address, category</code>. Rows with
-            an email skip enrichment and go straight to drafting.
+            Header row required. Handles both simple CSVs (<code>name, website, email, phone, address, category</code>)
+            and <strong>Apollo.io exports</strong> — Apollo columns like <code>Company, Email, First Name, Title, # Employees, Industry, City, State, LinkedIn URL, Annual Revenue</code> are auto-detected.
+            Rows with an email skip enrichment and go straight to drafting.
           </p>
           <textarea
             name="csv"

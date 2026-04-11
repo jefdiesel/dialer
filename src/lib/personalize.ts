@@ -47,6 +47,15 @@ export async function generateDraft(
   const enrichedParsed = lead.enriched ? safeJsonExtract(lead.enriched) : null;
   const signals: string[] = enrichedParsed?.signals ?? [];
   const sample: string = enrichedParsed?.textSample ?? "";
+  const apollo = enrichedParsed?.apollo as
+    | {
+        ownerTitle?: string;
+        employeeCount?: string;
+        linkedInUrl?: string;
+        seniority?: string;
+        annualRevenue?: string;
+      }
+    | undefined;
 
   const playbookBlock = playbookContext
     ? `
@@ -58,9 +67,15 @@ INDUSTRY CONTEXT (for targeting only — DO NOT mention or paraphrase any of thi
 `
     : "";
 
+  const apolloBlock = apollo
+    ? `
+APOLLO CONTEXT (from a lead database — use these facts to make the email specific):
+${apollo.ownerTitle ? `- Owner title: ${apollo.ownerTitle}\n` : ""}${apollo.employeeCount ? `- Employee count: ${apollo.employeeCount}\n` : ""}${apollo.annualRevenue ? `- Annual revenue: ${apollo.annualRevenue}\n` : ""}${apollo.seniority ? `- Seniority: ${apollo.seniority}\n` : ""}`
+    : "";
+
   const userMsg = `CAMPAIGN PITCH (the consultant's framing — adapt, don't copy):
 ${pitch}
-${playbookBlock}
+${playbookBlock}${apolloBlock}
 LEAD:
 - Business: ${lead.businessName}
 - Category: ${lead.category ?? "unknown"}

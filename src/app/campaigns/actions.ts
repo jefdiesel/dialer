@@ -62,28 +62,44 @@ export async function importLeadsFromCsv(campaignId: string, formData: FormData)
   const csv = String(formData.get("csv") ?? "").trim();
   if (!csv) throw new Error("paste some CSV first");
 
-  // Minimal CSV parser: header row, comma-separated, quoted strings supported.
-  // Recognized headers (case-insensitive, any subset): name/business,
-  // website/url, email, phone, address, category.
   const rows = parseCsv(csv);
   if (rows.length < 2) throw new Error("need a header row + at least one data row");
   const header = rows[0].map((h) => h.trim().toLowerCase());
 
   const idx = (...names: string[]) => {
     for (const n of names) {
-      const i = header.indexOf(n);
+      const i = header.indexOf(n.toLowerCase());
       if (i >= 0) return i;
     }
     return -1;
   };
-  const iName = idx("name", "business", "businessname", "business name");
-  const iSite = idx("website", "url", "site");
-  const iEmail = idx("email");
-  const iPhone = idx("phone", "telephone");
-  const iAddr = idx("address");
-  const iCat = idx("category", "type");
 
-  if (iName < 0) throw new Error("CSV must include a 'name' or 'business' column");
+  // Minimal format: name/business, website, email, phone, address, category
+  // Apollo format: company, website, email, corporate phone, first name,
+  //   last name, title, # employees, industry, city, state, linkedin url
+  const iName = idx("name", "business", "businessname", "business name", "company", "company name", "organization");
+  const iSite = idx("website", "url", "site", "organization website", "company website");
+  const iEmail = idx("email", "work email", "primary email");
+  const iPhone = idx("phone", "telephone", "corporate phone", "work phone", "mobile phone");
+  const iAddr = idx("address", "city");
+  const iCat = idx("category", "type", "industry");
+  const iFirst = idx("first name", "firstname");
+  const iLast = idx("last name", "lastname");
+  const iTitle = idx("title", "job title");
+  const iEmployees = idx("# employees", "employees", "employee count", "headcount");
+  const iCity = idx("city");
+  const iState = idx("state");
+  const iLinkedIn = idx("person linkedin url", "linkedin url", "linkedin");
+  const iSeniority = idx("seniority");
+  const iRevenue = idx("annual revenue", "revenue");
+
+  if (iName < 0) {
+    throw new Error("CSV must include a name / business / company / organization column");
+  }
+
+  // If we see Apollo-specific columns, we'll pack the extra context into the
+  // enriched JSON so the personalizer can use it.
+  const isApollo = iFirst >= 0 || iTitle >= 0 || iEmployees >= 0 || iLinkedIn >= 0;
 
   let inserted = 0;
   for (let r = 1; r < rows.length; r++) {
@@ -93,17 +109,56 @@ export async function importLeadsFromCsv(campaignId: string, formData: FormData)
     const website = iSite >= 0 ? (row[iSite] ?? "").trim() || null : null;
     const email = iEmail >= 0 ? (row[iEmail] ?? "").trim() || null : null;
 
+    // Build an owner name if we have first/last
+    let ownerName: string | null = null;
+    if (iFirst >= 0) {
+      const first = (row[iFirst] ?? "").trim();
+      const last = iLast >= 0 ? (row[iLast] ?? "").trim() : "";
+      ownerName = [first, last].filter(Boolean).join(" ") || null;
+    }
+
+    // Combine city+state as the address if we don't have a full address column
+    let address: string | null = null;
+    if (iAddr >= 0) {
+      address = (row[iAddr] ?? "").trim() || null;
+    }
+    if (!address && iCity >= 0) {
+      const city = (row[iCity] ?? "").trim();
+      const state = iState >= 0 ? (row[iState] ?? "").trim() : "";
+      address = [city, state].filter(Boolean).join(", ") || null;
+    }
+
+    // Pack Apollo extras into enriched JSON so they flow to the personalizer.
+    let enriched: string | null = null;
+    if (isApollo) {
+      const apolloContext: Record<string, string> = {};
+      if (iTitle >= 0 && row[iTitle]) apolloContext.ownerTitle = row[iTitle].trim();
+      if (iEmployees >= 0 && row[iEmployees]) apolloContext.employeeCount = row[iEmployees].trim();
+      if (iLinkedIn >= 0 && row[iLinkedIn]) apolloContext.linkedInUrl = row[iLinkedIn].trim();
+      if (iSeniority >= 0 && row[iSeniority]) apolloContext.seniority = row[iSeniority].trim();
+      if (iRevenue >= 0 && row[iRevenue]) apolloContext.annualRevenue = row[iRevenue].trim();
+      enriched = JSON.stringify({
+        source: "apollo",
+        signals: [],
+        apollo: apolloContext,
+        textSample: "",
+      });
+    }
+
     await prisma.lead.create({
       data: {
         campaignId,
         businessName,
         website,
         primaryEmail: email,
+        ownerName,
         phone: iPhone >= 0 ? (row[iPhone] ?? "").trim() || null : null,
-        address: iAddr >= 0 ? (row[iAddr] ?? "").trim() || null : null,
+        address,
         category: iCat >= 0 ? (row[iCat] ?? "").trim() || null : null,
-        // If we already have an email from the CSV, mark as enriched so it
-        // can skip discovery and go straight to personalization.
+        enriched,
+        enrichedAt: isApollo ? new Date() : null,
+        // If we already have an email, skip discovery/enrichment and go
+        // straight to drafting.
         status: email ? "enriched" : "new",
       },
     });
