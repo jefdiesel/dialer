@@ -57,6 +57,38 @@ model Lead {
   @@index([campaignId, status])
 }
 
+// Inbound funnel: someone clicks the cold email link, lands on /audit,
+// pays via Stripe, uploads their data, and waits for the report.
+//
+// Lifecycle:
+//   pending      - Stripe session created, payment not yet confirmed
+//   paid         - webhook received checkout.session.completed
+//   uploaded     - client signed NDA and uploaded data
+//   delivered    - consultant has emailed the report
+//   refunded     - refund issued (manually via Stripe)
+model AuditOrder {
+  id                 String   @id @default(cuid())
+  stripeSessionId    String   @unique
+  stripePaymentIntent String?
+  customerEmail      String
+  customerName       String?
+  businessName       String?
+  amountCents        Int      @default(40000) // $400.00
+  status             String   @default("pending") // pending | paid | uploaded | delivered | refunded
+  ndaAcceptedAt      DateTime?
+  ndaIp              String?
+  uploadedAt         DateTime?
+  uploadedFiles      String?  // JSON array of file metadata
+  notes              String?
+  paidAt             DateTime?
+  deliveredAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status])
+  @@index([customerEmail])
+}
+
 model Playbook {
   id                  String   @id @default(cuid())
   industrySlug        String   @unique // e.g. "dental-clinics", "law-firms"
