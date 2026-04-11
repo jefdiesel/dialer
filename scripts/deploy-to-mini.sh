@@ -24,10 +24,11 @@
 
 set -euo pipefail
 
-REPO_URL="git@github.com:jefdiesel/dialer.git"
+REPO_URL="${DIALER_REPO_URL:-https://github.com/jefdiesel/dialer.git}"
 INSTALL_DIR="${HOME}/dialer"
 APP_LABEL="com.dialer.app"
 CRON_LABEL="com.dialer.cron"
+DIALER_PORT="${DIALER_PORT:-3000}"
 
 cyan()  { printf "\033[36m%s\033[0m\n" "$*"; }
 green() { printf "\033[32m%s\033[0m\n" "$*"; }
@@ -142,7 +143,7 @@ cat > "$APP_PLIST" <<EOF
         <key>NODE_ENV</key>
         <string>production</string>
         <key>PORT</key>
-        <string>3000</string>
+        <string>$DIALER_PORT</string>
     </dict>
     <key>RunAtLoad</key>
     <true/>
@@ -170,7 +171,7 @@ cat > "$CRON_PLIST" <<EOF
         <string>-sS</string>
         <string>-H</string>
         <string>Authorization: Bearer $CRON_SECRET</string>
-        <string>http://localhost:3000/api/cron/follow-ups</string>
+        <string>http://localhost:$DIALER_PORT/api/cron/follow-ups</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
@@ -203,8 +204,8 @@ ok "launchd jobs loaded"
 # ---- 8. Smoke test -------------------------------------------------------
 step "Waiting 5 seconds for the app to start..."
 sleep 5
-if curl -sf http://localhost:3000/ >/dev/null; then
-  ok "Dialer is responding on http://localhost:3000"
+if curl -sf http://localhost:$DIALER_PORT/ >/dev/null; then
+  ok "Dialer is responding on http://localhost:$DIALER_PORT"
 else
   warn "Dialer not yet responding. Check /tmp/dialer-app.err for errors."
 fi
@@ -215,7 +216,7 @@ green "════════════════════════�
 green "  Dialer is installed and running on this Mac mini."
 green "═══════════════════════════════════════════════════════════════════"
 echo ""
-echo "Local:    http://localhost:3000"
+echo "Local:    http://localhost:$DIALER_PORT"
 echo "Logs:     tail -f /tmp/dialer-app.log"
 echo "Errors:   tail -f /tmp/dialer-app.err"
 echo ""
