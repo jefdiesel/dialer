@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dialer — Lead Sources</title>
+<style>
+  :root {
+    --bg: #0b0b0c;
+    --panel: #141416;
+    --panel-2: #1a1a1d;
+    --border: #26262a;
+    --text: #e8e8ea;
+    --text-dim: #a0a0a8;
+    --text-faint: #6a6a72;
+    --accent: #7dd3fc;
+    --green: #6ee7b7;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fafafa;
+      --panel: #ffffff;
+      --panel-2: #f4f4f5;
+      --border: #e4e4e7;
+      --text: #18181b;
+      --text-dim: #52525b;
+      --text-faint: #a1a1aa;
+      --accent: #0284c7;
+      --green: #059669;
+      --amber: #d97706;
+      --red: #dc2626;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  header p {
+    color: var(--text-dim);
+    margin: 0;
+    font-size: 15px;
+  }
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 48px 0 8px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2 .tier-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--bg);
+  }
+  h2.tier-1 .tier-label { background: var(--green); }
+  h2.tier-2 .tier-label { background: var(--amber); }
+  h2.tier-3 .tier-label { background: var(--accent); }
+  h2.tier-4 .tier-label { background: var(--text-faint); }
+  .tier-description {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 0 0 24px;
+  }
+  .source {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .source h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .source .tag {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .source .tag.free { color: var(--green); border-color: var(--green); }
+  .source .tag.paid { color: var(--amber); border-color: var(--amber); }
+  .source .tag.wired { color: var(--accent); border-color: var(--accent); }
+  .source .tag.skip { color: var(--red); border-color: var(--red); }
+  .source dl {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 6px 16px;
+    margin: 14px 0 0;
+    font-size: 14px;
+  }
+  .source dt {
+    color: var(--text-faint);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    padding-top: 2px;
+  }
+  .source dd {
+    margin: 0;
+    color: var(--text);
+  }
+  .source dd a {
+    color: var(--accent);
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .source dd a:hover { text-decoration: underline; }
+  .source dd code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--panel-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .source .note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 13px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    font-weight: 600;
+    background: var(--panel-2);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tfoot td {
+    font-weight: 700;
+    background: var(--panel-2);
+  }
+  .callout {
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .callout strong { color: var(--accent); }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Dialer — Lead Sources</h1>
+  <p>Where 500 qualified Mikes per week come from. Ranked by dollar-cost per lead, best first.</p>
+</header>
+
+<h2 class="tier-1"><span>Tier 1</span> <span class="tier-label">Use First</span></h2>
+<p class="tier-description">Highest-quality, lowest-friction sources. Start here. Apollo is the single biggest lever.</p>
+
+<div class="source">
+  <h3>Apollo.io <span class="tag paid">Paid — $49/mo</span> <span class="tag wired">Wired in dialer</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://apollo.io" target="_blank">apollo.io</a></dd>
+    <dt>What you get</dt><dd>email, phone, LinkedIn, title, company, website, employee count, revenue range, industry, location</dd>
+    <dt>Filters that matter</dt><dd>title = Owner/President/CEO, employees 3–30, revenue $500k–$5M, industry = knowledge-work vertical</dd>
+    <dt>Volume</dt><dd>~1,000 Mikes/month for $49</dd>
+    <dt>How to use</dt><dd>Export CSV → drop into the dialer's CSV import panel. Apollo headers are auto-detected.</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>NPI Registry <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://npiregistry.cms.hhs.gov/search" target="_blank">npiregistry.cms.hhs.gov</a></dd>
+    <dt>Bulk dump</dt><dd><a href="https://download.cms.gov/nppes/NPI_Files.html" target="_blank">download.cms.gov/nppes/NPI_Files.html</a> — monthly full DB, ~8 GB CSV, ~8M providers</dd>
+    <dt>What you get</dt><dd>provider name, practice name, address, phone, taxonomy code (specialty)</dd>
+    <dt>Filter</dt><dd>solo/small-practice taxonomy codes: family medicine, internal medicine, dental, chiropractic, PT, mental health</dd>
+    <dt>Missing</dt><dd>email — need to enrich via Hunter.io or Apollo domain lookup</dd>
+    <dt>Volume</dt><dd>~500k filtered targets nationally</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>State Bar Associations <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>Texas</dt><dd><a href="https://www.texasbar.com/AM/Template.cfm?Section=Find_A_Lawyer" target="_blank">texasbar.com — Find a Lawyer</a></dd>
+    <dt>California</dt><dd><a href="https://apps.calbar.ca.gov/attorney/LicenseeSearch/QuickSearch" target="_blank">calbar.ca.gov — Licensee Search</a></dd>
+    <dt>New York</dt><dd><a href="https://iapps.courts.state.ny.us/attorneyservices/wicket/page/AttorneySearch" target="_blank">courts.state.ny.us — Attorney Search</a></dd>
+    <dt>Florida</dt><dd><a href="https://www.floridabar.org/directories/find-mbr/" target="_blank">floridabar.org — Find a Member</a></dd>
+    <dt>What you get</dt><dd>attorney name, firm name, address, bar-registered email (sometimes)</dd>
+    <dt>Volume</dt><dd>50k+ solos/smalls per major state</dd>
+    <dt>Note</dt><dd>filter by practice area (estate planning, family law, small biz) and firm size</dd>
+  </dl>
+  <div class="note">No central directory — each state has its own site. Scrape one state at a time.</div>
+</div>
+
+<div class="source">
+  <h3>AICPA &amp; State CPA Societies <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>AICPA main</dt><dd><a href="https://us.aicpa.org/forthepublic/findacpa" target="_blank">us.aicpa.org/forthepublic/findacpa</a></dd>
+    <dt>State societies</dt><dd>each state has a "find a CPA" tool with firm name + location</dd>
+    <dt>Volume</dt><dd>~400k CPAs nationally; small practices are the target</dd>
+    <dt>Missing</dt><dd>email — enrich via Apollo</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>NAIC &amp; State Insurance Departments <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>NAIC search</dt><dd><a href="https://content.naic.org/cis_consumer_information.htm" target="_blank">content.naic.org</a></dd>
+    <dt>Texas example</dt><dd><a href="https://www.tdi.texas.gov/agent/index.html" target="_blank">tdi.texas.gov/agent</a></dd>
+    <dt>Volume</dt><dd>varies by state; tens of thousands of licensed agents per major state</dd>
+    <dt>Note</dt><dd>focus on independent agencies — skip captives (State Farm/Allstate employees)</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>NARPM Directory (Property Management) <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://www.narpm.org/find-a-property-manager/" target="_blank">narpm.org/find-a-property-manager</a></dd>
+    <dt>Volume</dt><dd>~6k member firms nationally (residential PM only)</dd>
+    <dt>Quality</dt><dd>high — they pay dues, actively operating businesses</dd>
+    <dt>Limit</dt><dd>much smaller than other verticals</dd>
+  </dl>
+</div>
+
+<h2 class="tier-2"><span>Tier 2</span> <span class="tier-label">Intent Signals</span></h2>
+<p class="tier-description">Free scraping of public intent signals — businesses actively broadcasting the pain you solve.</p>
+
+<div class="source">
+  <h3>Indeed Job Postings <span class="tag free">Free</span> <span class="tag">High Intent</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://indeed.com" target="_blank">indeed.com</a></dd>
+    <dt>Search terms</dt><dd><code>administrative assistant</code>, <code>office manager</code>, <code>intake coordinator</code>, <code>data entry</code> in target city</dd>
+    <dt>Signal</dt><dd>any business hiring these roles is drowning in admin = Mike</dd>
+    <dt>Cold email hook</dt><dd>"noticed you posted for an admin assistant — at ~$42k loaded cost, that's $X/year..."</dd>
+    <dt>Build</dt><dd>~4–6 hours to wire a scraper into the dialer</dd>
+    <dt>Volume</dt><dd>200+ high-intent leads/month per major metro</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>BBB (Better Business Bureau) <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://www.bbb.org/us/search" target="_blank">bbb.org/us/search</a></dd>
+    <dt>What you get</dt><dd>business name, address, phone, website, years in business, accreditation status, rating</dd>
+    <dt>Filter</dt><dd>accredited businesses in target categories</dd>
+    <dt>Note</dt><dd>anti-bot measures exist; scrape carefully</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>Chamber of Commerce Directories <span class="tag free">Free</span></h3>
+  <dl>
+    <dt>Example</dt><dd><a href="https://www.austinchamber.com/directory" target="_blank">austinchamber.com/directory</a></dd>
+    <dt>Quality</dt><dd>very high — members pay annual dues, actively growing businesses</dd>
+    <dt>Volume</dt><dd>500–3,000 members per major city chamber</dd>
+    <dt>Effort</dt><dd>manual or custom scraper per chamber; doesn't scale well but the quality is unmatched</dd>
+  </dl>
+</div>
+
+<h2 class="tier-3"><span>Tier 3</span> <span class="tier-label">Already Built</span></h2>
+<p class="tier-description">Already wired into the dialer. No extra setup needed.</p>
+
+<div class="source">
+  <h3>Google Places API (New) <span class="tag free">Free quota</span> <span class="tag wired">Wired in dialer</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://developers.google.com/maps/documentation/places/web-service" target="_blank">developers.google.com/maps/documentation/places</a></dd>
+    <dt>What you get</dt><dd>name, website, phone, address, category, rating</dd>
+    <dt>Missing</dt><dd>email, owner name, employee count</dd>
+    <dt>Best for</dt><dd>local SMBs by category, as a volume source</dd>
+    <dt>How to use</dt><dd>"1. Discover leads" button on the campaign page</dd>
+  </dl>
+</div>
+
+<h2 class="tier-4"><span>Tier 4</span> <span class="tier-label">Skip For Now</span></h2>
+<p class="tier-description">Overpriced, overlapping, or wrong shape for this stage. Revisit later.</p>
+
+<div class="source">
+  <h3>LinkedIn Sales Navigator + Evaboot <span class="tag paid">$170/mo</span> <span class="tag skip">Skip</span></h3>
+  <dl>
+    <dt>Cost</dt><dd>$100/mo Sales Nav + $70/mo Evaboot exporter</dd>
+    <dt>Quality</dt><dd>very high but overlaps with Apollo at higher cost</dd>
+    <dt>Revisit when</dt><dd>Apollo runs out at ~1,200/mo exports</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>ZoomInfo <span class="tag paid">$15k+/yr</span> <span class="tag skip">Skip</span></h3>
+  <dl>
+    <dt>Cost</dt><dd>enterprise pricing</dd>
+    <dt>Why skip</dt><dd>overkill for a solo operator at this stage</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>Clay.com <span class="tag paid">$149/mo</span> <span class="tag skip">Skip</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://clay.com" target="_blank">clay.com</a></dd>
+    <dt>Why not now</dt><dd>powerful, but needs heavy setup — waterfall enrichment across multiple providers. Revisit when stitching sources together matters.</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>Hunter.io <span class="tag paid">$49/mo</span> <span class="tag skip">Enrichment only</span></h3>
+  <dl>
+    <dt>URL</dt><dd><a href="https://hunter.io" target="_blank">hunter.io</a></dd>
+    <dt>Use case</dt><dd>finding missing emails on lists built from NPI / bar / CPA registries</dd>
+    <dt>Not primary sourcing</dt><dd>it's a finisher, not a source</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>State Business Registration DBs <span class="tag free">Free</span> <span class="tag skip">Too noisy</span></h3>
+  <dl>
+    <dt>Example</dt><dd><a href="https://www.sos.state.tx.us/corp/sosda/" target="_blank">sos.state.tx.us/corp/sosda</a></dd>
+    <dt>Problem</dt><dd>most registrations are shell companies, dead LLCs, holding cos. Signal-to-noise is brutal.</dd>
+  </dl>
+</div>
+
+<h2>Realistic Monthly Stack</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Source</th>
+      <th class="num">Cost</th>
+      <th class="num">Volume</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Apollo.io</td><td class="num">$49</td><td class="num">~1,000</td></tr>
+    <tr><td>NPI Registry (bulk + filter)</td><td class="num">$0</td><td class="num">~500</td></tr>
+    <tr><td>State bar scraping</td><td class="num">$0</td><td class="num">~300</td></tr>
+    <tr><td>AICPA directories</td><td class="num">$0</td><td class="num">~200</td></tr>
+    <tr><td>Indeed intent scraper</td><td class="num">$0</td><td class="num">~200</td></tr>
+    <tr><td>Google Places (dialer)</td><td class="num">$0</td><td class="num">~300</td></tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>Total</td>
+      <td class="num">$49/mo</td>
+      <td class="num">~2,500/mo</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="callout">
+  <strong>That's your 500/week target</strong> with $49 in cash spend and some one-time scraper builds. The bottleneck isn't tool capacity — it's getting reliable Mike-profile leads out of these sources and into the dialer.
+</div>
+
+<h2>What's Wired Today vs. To-Build</h2>
+<div class="source">
+  <h3>Ready to use now</h3>
+  <dl>
+    <dt>Apollo CSV</dt><dd>drop export into the campaign page "Import leads from CSV" panel. Auto-detected.</dd>
+    <dt>Google Places</dt><dd>"1. Discover leads" button on any campaign</dd>
+  </dl>
+</div>
+
+<div class="source">
+  <h3>To build (in priority order)</h3>
+  <dl>
+    <dt>1. Indeed scraper</dt><dd>highest intent signal, ~4–6 hours to build</dd>
+    <dt>2. NPI importer</dt><dd>biggest volume source, one-time bulk download + filter script</dd>
+    <dt>3. State bar scraper</dt><dd>per-state, most legal-specific; start with your home state</dd>
+    <dt>4. AICPA enricher</dt><dd>same shape as bar scraper</dd>
+  </dl>
+  <div class="note">Don't build these until Apollo runs out or you want to test a non-Apollo channel.</div>
+</div>
+
+<footer>
+  Dialer — internal reference doc — last updated 2026-04-11
+</footer>
+
+</div>
+</body>
+</html>
