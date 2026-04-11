@@ -9,6 +9,7 @@ import {
   runDiscovery,
   runEnrichment,
   runPersonalization,
+  scrapeIndeedForCampaign,
   updateDraft,
 } from "../actions";
 
@@ -57,6 +58,48 @@ export default async function CampaignDetailPage({
           </pre>
         </details>
       </header>
+
+      <details className="mb-4 rounded border border-zinc-200 bg-white p-4 text-xs dark:border-zinc-800 dark:bg-zinc-950">
+        <summary className="cursor-pointer font-medium">
+          Scrape Indeed job postings (intent signal)
+        </summary>
+        <form
+          action={async (fd: FormData) => {
+            "use server";
+            await scrapeIndeedForCampaign(campaign.id, fd);
+          }}
+          className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          <p className="text-zinc-500 sm:col-span-3">
+            Any business posting an admin / office / intake role is a shop drowning in paperwork.
+            The job post becomes the cold email hook. One Indeed search per run, ~20–25 results.
+            Takes 10–15 seconds.
+          </p>
+          <input
+            name="query"
+            defaultValue="administrative assistant"
+            placeholder="Job title"
+            className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <input
+            name="location"
+            defaultValue="Austin, TX"
+            placeholder="City, State"
+            className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <input
+            name="maxResults"
+            type="number"
+            defaultValue={25}
+            min={5}
+            max={50}
+            className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <button className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 sm:col-span-3 sm:justify-self-start">
+            Scrape Indeed
+          </button>
+        </form>
+      </details>
 
       <details className="mb-4 rounded border border-zinc-200 bg-white p-4 text-xs dark:border-zinc-800 dark:bg-zinc-950">
         <summary className="cursor-pointer font-medium">

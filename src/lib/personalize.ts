@@ -10,41 +10,50 @@ import { runClaude, safeJsonExtract } from "./claudeCli";
 
 const MODEL = "sonnet"; // sonnet 4.6, fast + cheap on quota
 
-const SYSTEM = `You write cold outreach emails for an AI consultant selling a productized "AI Audit":
+const SYSTEM = `You write cold outreach emails for an AI consultant selling a productized "AI Audit". Your emails follow a strict 5-line template. Most cold emails suck because they're too long, too formal, and the ask is too heavy. Yours will be the opposite.
 
-THE OFFER (do not deviate):
-- $400 flat price, written 4-page report, delivered in 48 hours
-- Client forwards a small data sample (5 customer emails, 5 vendor emails, a photo of their desk) — no meetings required
-- Report identifies 3 specific places AI could save them real money, with dollar figures
-- Money-back guarantee: if the 3 recommendations aren't worth at least $10k/year, full refund
-- No sales call. No Zoom. No pitch deck. Just the report.
+THE OFFER (condense, never pad):
+$400 flat, 48-hour written report, 3 specific places AI would save them real money with dollar figures. They forward 5 emails + a photo of their desk. No meetings. Refund if the recs aren't worth $10k/year.
 
-CRITICAL FRAMING — TEASE, DON'T TELL:
-The specific AI recommendations are the PAID DELIVERABLE. The email exists to sell the audit, NOT to give away recommendations. Demonstrate the consultant knows their industry without revealing what he'd recommend. The recipient should think "this person knows what's actually possible" — not "great, now I know what to do."
+THE 5-LINE TEMPLATE (this is the entire body):
+
+Line 1: "Hey {firstName}," or "Hey there," — nothing else on this line.
+Line 2: ONE specific observation about THEM pulled from the context. Specific enough that only one person could have received this email. Pulls from Apollo data (title, employees, revenue), an Indeed job post they made, or a website signal. NEVER "I noticed your website." NEVER "Hope you're doing well." NEVER a generic industry claim.
+Line 3: The offer, brutally compressed. Exactly this shape: "I do a $400 written AI audit — forward me 5 emails + a photo of your desk, I send back a 4-page report on 3 things AI could save you real money. 48 hours, no meeting, full refund if it's not worth $10k/year to you."
+Line 4: A low-friction ask. One of: "Worth a 2-min look?" / "Worth a yes or no?" / "Want the upload link?" / "Reply 'send it' and I'll send the upload link." Easy to say yes to. Never "would love to connect."
+Line 5: "— {consultantFirstName}" (just the first name, leave as "— Jef" as placeholder — the signature gets replaced later).
 
 RULES:
 - Output ONLY a JSON object: {"subject": "...", "body": "..."}. No prose, no code fences, no preamble.
-- Subject: max 60 chars. NOT clickbait, NOT salesy. Reference something specific from the lead's context when possible. Short and direct wins.
-- Body: 4-6 short sentences, ~100 words max. Plain text. Greeting "Hi {firstName}," or "Hi there," if no name. No signature — that gets appended later.
-- OPENING (1 sentence): ONE specific observation about THEIR business pulled from the context. Use Apollo data aggressively — title, employee count, revenue, industry. NEVER "I noticed your website." Examples: "6 employees at a $1.4M insurance agency means you're doing the admin yourself at night, not during the day." "As managing partner of a 4-person law firm, the billing hours you can't capture are probably worth more than the ones you do." Be specific, be real, never fabricate.
-- PITCH (2-3 sentences): Explain the audit offer plainly. Must include: $400, 48 hours, written report, no meeting required, refund guarantee. The offer itself is the hook — do not pad it.
-- ASK (1 sentence): "Reply and I'll send the upload link." or similar. Zero-pressure.
-- NEVER list AI use cases. NEVER name AI capabilities ("OCR", "RAG", "automation", "agents"). NEVER preview what the 3 recommendations might be. If you do, the audit has no value.
-- Avoid buzzwords: leverage, synergy, transform, unlock, empower, streamline, revolutionize, AI-powered, next-level, game-changing. Write like a human emailing another human.
-- NEVER fabricate facts. If the context is thin, keep the observation generic but honest ("Running a small {{category}} usually means you're the bottleneck on anything that isn't billable").
-- Sound like one person writing one email, not a template.
+- Subject: max 50 chars. Specific enough that only one person could have received it. Good: "audit for {{BusinessName}}" or "{{jobTitle}} + $42k loaded cost". Bad: "Quick question", "Partnership opportunity", "Following up", "Unlock AI!", any emoji, any ALL CAPS.
+- Body: exactly 5 content lines separated by single blank lines. ~70-90 words TOTAL. If you hit 100 words you're padding.
+- NO "hope this finds you well". NO "I'm reaching out because". NO "I wanted to introduce myself". NO "I'll be brief". NO buzzwords (leverage, synergy, transform, unlock, empower, streamline, revolutionize, AI-powered, next-level, game-changing). Write like texting a smart friend.
+- NEVER list AI use cases. NEVER name AI capabilities (OCR, RAG, agents, automation). NEVER preview what the 3 recommendations might be. The audit's value IS those specifics.
+- NEVER fabricate. If the context is thin, keep the observation generic but honest — "running a small {{category}} usually means you're the bottleneck on anything that isn't billable."
+- Use contractions. Use fragments. Short sentences beat long ones. Assume the reader has 4 seconds.
+- If an Indeed job posting is in the context, LEAD WITH IT. That's the strongest possible opener. "Saw you posted for an admin assistant — ~$45k loaded cost."
 
-GOOD EXAMPLE (model this):
-Subject: An AI audit for your agency
-Hi Mike,
-6 employees and $1.4M revenue means you're probably doing the paperwork yourself after hours — intake forms, renewals, the stuff that isn't billable.
-I do a written AI audit for small businesses: you forward me a sample of your operations (5 emails, a photo of your desk, whatever you can pull in 20 min), I write you a 4-page report on the 3 places AI would actually save you real money, with dollar figures. $400 flat, 48-hour turnaround, no meetings. If the 3 recommendations aren't worth $10k/year to your agency, full refund.
-Reply and I'll send the upload link.
+GOOD EXAMPLE:
+Subject: audit for Midway Insurance
 
-BAD EXAMPLE (do not do this):
-Subject: Unlock Game-Changing AI for Your Agency! 🚀
+Hey Mike,
+
+6 employees at a $1.4M agency means you're doing the admin yourself at night.
+
+I do a $400 written AI audit — forward me 5 emails + a photo of your desk, I send back a 4-page report on 3 things AI would save you real money. 48 hours, no meeting, full refund if it's not worth $10k/year.
+
+Worth a yes or no?
+
+— Jef
+
+BAD EXAMPLE (do not produce this):
+Subject: Unlock Game-Changing AI Solutions for Your Agency! 🚀
+
 Hi Mike,
-I noticed your website and thought I'd reach out about how AI can transform your business! We leverage cutting-edge automation like OCR and RAG to streamline your intake forms and automate your renewals...`;
+
+Hope this email finds you well! I'm reaching out because I noticed your website and wanted to introduce myself. I'm an AI consultant and I specialize in helping small businesses like yours leverage cutting-edge automation to streamline their operations and unlock next-level productivity. My AI Audit service uses advanced OCR and RAG technologies to identify opportunities in your workflow...
+
+Why this is bad: generic opener, buzzwords everywhere, gives away the recommendations (OCR, RAG), reads like a template, way too long, formal tone, makes it about the consultant not the reader.`;
 
 export type PersonalizedDraft = {
   subject: string;
@@ -76,6 +85,14 @@ export async function generateDraft(
         annualRevenue?: string;
       }
     | undefined;
+  const indeed = enrichedParsed?.indeed as
+    | {
+        jobTitle?: string;
+        jobUrl?: string;
+        postedDaysAgo?: number | null;
+        snippet?: string;
+      }
+    | undefined;
 
   const playbookBlock = playbookContext
     ? `
@@ -93,9 +110,19 @@ APOLLO CONTEXT (from a lead database — use these facts to make the email speci
 ${apollo.ownerTitle ? `- Owner title: ${apollo.ownerTitle}\n` : ""}${apollo.employeeCount ? `- Employee count: ${apollo.employeeCount}\n` : ""}${apollo.annualRevenue ? `- Annual revenue: ${apollo.annualRevenue}\n` : ""}${apollo.seniority ? `- Seniority: ${apollo.seniority}\n` : ""}`
     : "";
 
+  const indeedBlock = indeed?.jobTitle
+    ? `
+INTENT SIGNAL (this lead was found because they're actively hiring — LEAD WITH THIS IN THE OPENING):
+- Job title they posted: "${indeed.jobTitle}"
+- Posted ${indeed.postedDaysAgo ?? "recently"} days ago
+- Snippet from the posting: ${(indeed.snippet ?? "").slice(0, 300)}
+Use this as the opening observation. A loaded cost of $42k–$65k/year for an admin/office hire is the dollar framing to reference. Example opener: "Noticed you posted for a {{jobTitle}} — at ~$45k loaded cost, that's real money you're about to spend on paperwork instead of sales."
+`
+    : "";
+
   const userMsg = `CAMPAIGN PITCH (the consultant's framing — adapt, don't copy):
 ${pitch}
-${playbookBlock}${apolloBlock}
+${playbookBlock}${apolloBlock}${indeedBlock}
 LEAD:
 - Business: ${lead.businessName}
 - Category: ${lead.category ?? "unknown"}

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { discoverLeads } from "@/lib/discover";
 import { enrichCampaign } from "@/lib/enrich";
 import { personalizeCampaign, personalizeLead } from "@/lib/personalize";
+import { scrapeIndeed } from "@/lib/scrapers/indeed";
 import { pushToTracker } from "@/lib/tracker";
 
 export async function createCampaign(formData: FormData) {
@@ -56,6 +57,69 @@ export async function approveAndPushDraft(draftId: string) {
   });
   if (draft) revalidatePath(`/campaigns/${draft.lead.campaignId}`);
   if (!result.ok) throw new Error(result.error);
+}
+
+// Indeed scrape: pulls recent job postings matching a query + city, then
+// inserts one lead per unique company. The job posting itself is the intent
+// signal; we store it in the enriched JSON so the personalizer can use the
+// hiring post as the cold-email hook ("noticed you posted for an admin
+// assistant — ~$42k loaded cost"). No owner/email yet — those get filled in
+// by running the standard website enrichment pass afterward.
+export async function scrapeIndeedForCampaign(campaignId: string, formData: FormData) {
+  const query = String(formData.get("query") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
+  const maxResults = Number(formData.get("maxResults") ?? 25);
+  if (!query || !location) throw new Error("query and location are required");
+
+  const jobs = await scrapeIndeed({ query, location, maxResults });
+
+  // Dedupe by company name within this scrape AND against existing leads.
+  const seen = new Set<string>();
+  let inserted = 0;
+  for (const job of jobs) {
+    const key = job.companyName.toLowerCase().trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+
+    // Skip if we already have this company in this campaign.
+    const existing = await prisma.lead.findFirst({
+      where: { campaignId, businessName: { equals: job.companyName } },
+    });
+    if (existing) continue;
+
+    const enriched = JSON.stringify({
+      source: "indeed",
+      signals: ["hiring", "intent:job-posting"],
+      indeed: {
+        query,
+        jobTitle: job.jobTitle,
+        jobUrl: job.url,
+        postedDaysAgo: job.postedDaysAgo,
+        snippet: job.snippet,
+        scrapedAt: job.scrapedAt,
+      },
+      textSample: job.snippet,
+    });
+
+    await prisma.lead.create({
+      data: {
+        campaignId,
+        businessName: job.companyName,
+        address: job.location || null,
+        enriched,
+        enrichedAt: new Date(),
+        // No email yet — needs a website-enrichment pass to find it. Leaving
+        // status as "new" so the enrichment button will pick it up and try
+        // to locate contact info on the company website.
+        status: "new",
+        notes: `Indeed: hiring for "${job.jobTitle}" (${job.postedDaysAgo ?? "?"} days ago)`,
+      },
+    });
+    inserted++;
+  }
+
+  revalidatePath(`/campaigns/${campaignId}`);
+  return { found: jobs.length, inserted };
 }
 
 export async function importLeadsFromCsv(campaignId: string, formData: FormData) {
