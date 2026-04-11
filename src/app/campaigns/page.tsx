@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { DEFAULT_AUDIT_PITCH } from "@/lib/defaultPitch";
 import { createCampaign } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -47,10 +48,10 @@ export default async function CampaignsPage() {
           />
           <textarea
             name="pitch"
-            placeholder="Pitch framing — what you're offering, hooks, why $200/hr is worth it. Claude uses this as guidance."
+            defaultValue={DEFAULT_AUDIT_PITCH}
             required
-            rows={3}
-            className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900 sm:col-span-2"
+            rows={10}
+            className="rounded border border-zinc-300 px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900 sm:col-span-2"
           />
           <button
             type="submit"
