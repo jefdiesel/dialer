@@ -43,8 +43,11 @@ model Lead {
   fitScore     Int?      // 0-100, how good of an AI-consult fit
 
   // Pipeline state
-  status       String    @default("new") // new | enriched | drafted | approved | handed_off | rejected | failed
+  status       String    @default("new") // new | enriched | drafted | approved | handed_off | rejected | failed | replied
   notes        String?
+
+  // Multi-touch sequence state
+  repliedAt    DateTime?  // when the lead responded; pauses any future touches
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -79,11 +82,17 @@ model Draft {
   subject    String?
   body       String
   model      String?  // which Claude model produced it
-  status     String   @default("draft") // draft | approved | handed_off | failed
+  status     String   @default("draft") // draft | approved | handed_off | failed | scheduled | skipped
   handoffRef String?  // ID returned by tracker after push
   handoffAt  DateTime?
+
+  // Multi-touch sequence
+  step       Int       @default(0) // 0 = initial, 1 = day-3 bump, 2 = day-7 closeout
+  dueAt      DateTime?              // for scheduled follow-ups: when this should fire
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([leadId])
+  @@index([status, dueAt])
 }

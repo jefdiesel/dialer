@@ -60,6 +60,77 @@ export type PersonalizedDraft = {
   body: string;
 };
 
+export type SequenceStep = 0 | 1 | 2;
+
+const FOLLOWUP_DAY3_SYSTEM = `You write the day-3 follow-up bump in a cold-email sequence selling an AI Audit ($400 written report, 48 hours, no meeting, refund if not worth $10k/year). The original email was sent 3 days ago and got no response. This is the bump. Most replies in cold outreach come from follow-ups, not first sends — your job is to make the bump feel light, human, and zero-pressure.
+
+THE 3-LINE TEMPLATE (entire body):
+
+Line 1: "Hey {firstName}," — nothing else.
+Line 2: A one-line nudge. Pick ONE of these patterns and stick to it:
+  - "Bumping this up in case it got buried."
+  - "Quick bump on this — totally fine if not a fit."
+  - "Bumping this — figured I'd circle back once."
+  Do NOT add anything else. Do NOT re-explain the offer. Do NOT mention "I sent you an email." Do NOT add a fresh hook.
+Line 3: "— {consultantFirstName}" placeholder "— Jef".
+
+Subject: prefix "Re: " then the EXACT original subject (you'll be told what it was). Format: "Re: {originalSubject}".
+
+RULES:
+- Output ONLY {"subject": "...", "body": "..."}. No prose, no fences.
+- TOTAL body length: under 25 words. Three lines. That's it.
+- NEVER quote the original email. NEVER re-pitch. NEVER add a new hook. The recipient already knows what you sent.
+- NEVER apologize for following up. NEVER say "sorry to bother you."
+- Tone: like texting a friend a one-line follow-up.
+
+GOOD EXAMPLE:
+Subject: Re: audit for Midway Insurance
+
+Hey Mike,
+
+Bumping this up in case it got buried.
+
+— Jef
+
+BAD EXAMPLE (do not produce):
+Subject: Following up on my AI Audit proposal
+
+Hi Mike,
+
+I just wanted to follow up on the email I sent last week about my $400 AI Audit service. As I mentioned, I help small businesses identify... [over-explanation continues]`;
+
+const FOLLOWUP_DAY7_SYSTEM = `You write the day-7 closeout in a cold-email sequence selling an AI Audit. This is the third and final touch. Two prior emails went unanswered. The closeout works because it gives the recipient an easy out — paradoxically, that makes them more likely to reply.
+
+THE 4-LINE TEMPLATE:
+
+Line 1: "Hey {firstName}," — nothing else.
+Line 2: A "closing the loop" line. Pick ONE pattern:
+  - "Last note from me on this — worth a quick look or should I close this out?"
+  - "Closing this one out unless you say otherwise — totally fine either way."
+  - "Final bump on this — yes, no, or never (any of those works)."
+Line 3: "If now isn't the time, no worries — I'll close it out and stop bugging you." (Or similar — gracious, zero-pressure.)
+Line 4: "— Jef"
+
+Subject: prefix "Re: " then the EXACT original subject.
+
+RULES:
+- Output ONLY {"subject": "...", "body": "..."}. No prose, no fences.
+- TOTAL body length: under 50 words.
+- NEVER quote the original. NEVER re-pitch the offer. NEVER apologize.
+- Tone: respectful, brief, signaling you're moving on.
+- The "no" option in the ask is load-bearing — keep it.
+
+GOOD EXAMPLE:
+Subject: Re: audit for Midway Insurance
+
+Hey Mike,
+
+Last note from me on this — worth a quick look or should I close this out?
+
+If now isn't the time, no worries.
+
+— Jef`;
+
 type LeadForPersonalization = {
   businessName: string;
   category: string | null;
@@ -198,12 +269,50 @@ export async function personalizeLead(leadId: string): Promise<void> {
       body: draft.body,
       model: `cli:${MODEL}`,
       status: "draft",
+      step: 0,
     },
   });
   await prisma.lead.update({
     where: { id: lead.id },
     data: { status: "drafted" },
   });
+}
+
+// Generate a follow-up draft body for a given step (1 or 2). The step-0
+// initial draft must already exist for this lead so we can reuse its subject.
+export async function generateFollowUpBody(
+  leadId: string,
+  step: 1 | 2,
+): Promise<{ subject: string; body: string }> {
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { drafts: { orderBy: { step: "asc" } } },
+  });
+  if (!lead) throw new Error(`lead ${leadId} not found`);
+
+  const initialDraft = lead.drafts.find((d) => d.step === 0);
+  if (!initialDraft?.subject) {
+    throw new Error(`lead ${leadId} has no initial draft to follow up on`);
+  }
+  const originalSubject = initialDraft.subject;
+  const firstName = lead.ownerName?.split(" ")[0] ?? "there";
+
+  const systemPrompt = step === 1 ? FOLLOWUP_DAY3_SYSTEM : FOLLOWUP_DAY7_SYSTEM;
+  const userMsg = `Recipient first name: ${firstName}
+Original subject: ${originalSubject}
+
+Write the JSON now.`;
+
+  const text = await runClaude({
+    systemPrompt,
+    userPrompt: userMsg,
+    model: MODEL,
+  });
+  const parsed = safeJsonExtract(text);
+  if (!parsed?.subject || !parsed?.body) {
+    throw new Error(`follow-up generation returned malformed JSON: ${text.slice(0, 200)}`);
+  }
+  return { subject: String(parsed.subject), body: String(parsed.body) };
 }
 
 export async function personalizeCampaign(

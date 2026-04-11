@@ -4,9 +4,11 @@ import { prisma } from "@/lib/db";
 import {
   approveAndPushDraft,
   importLeadsFromCsv,
+  markRepliedAction,
   regenerateDraftForLead,
   rejectLead,
   runDiscovery,
+  runDueFollowUpsAction,
   runEnrichment,
   runPersonalization,
   scrapeIndeedForCampaign,
@@ -156,6 +158,11 @@ export default async function CampaignDetailPage({
             3. Generate drafts
           </button>
         </form>
+        <form action={runDueFollowUpsAction.bind(null, campaign.id)}>
+          <button className="rounded border border-emerald-600 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950">
+            ▶ Send due follow-ups
+          </button>
+        </form>
         <div className="ml-auto text-xs text-zinc-500">
           {Object.entries(counts).map(([k, v]) => (
             <span key={k} className="mr-3">
@@ -227,7 +234,14 @@ export default async function CampaignDetailPage({
                       </button>
                     </form>
                   )}
-                  {lead.status !== "rejected" && lead.status !== "handed_off" && (
+                  {lead.status === "handed_off" && !lead.repliedAt && (
+                    <form action={markRepliedAction.bind(null, lead.id)}>
+                      <button className="rounded border border-blue-400 px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950">
+                        Mark replied
+                      </button>
+                    </form>
+                  )}
+                  {lead.status !== "rejected" && lead.status !== "replied" && (
                     <form action={rejectLead.bind(null, lead.id)}>
                       <button className="rounded border border-zinc-300 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900">
                         Reject

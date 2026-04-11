@@ -7,7 +7,7 @@ import { discoverLeads } from "@/lib/discover";
 import { enrichCampaign } from "@/lib/enrich";
 import { personalizeCampaign, personalizeLead } from "@/lib/personalize";
 import { ADMIN_ROLE_TITLES, scrapeIndeed } from "@/lib/scrapers/indeed";
-import { pushToTracker } from "@/lib/tracker";
+import { markLeadReplied, pushToTracker, runDueFollowUps } from "@/lib/tracker";
 
 export async function createCampaign(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -285,6 +285,17 @@ export async function rejectLead(leadId: string) {
   await prisma.lead.update({ where: { id: leadId }, data: { status: "rejected" } });
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (lead) revalidatePath(`/campaigns/${lead.campaignId}`);
+}
+
+export async function markRepliedAction(leadId: string) {
+  await markLeadReplied(leadId);
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (lead) revalidatePath(`/campaigns/${lead.campaignId}`);
+}
+
+export async function runDueFollowUpsAction(campaignId: string) {
+  await runDueFollowUps();
+  revalidatePath(`/campaigns/${campaignId}`);
 }
 
 export async function updateDraft(draftId: string, formData: FormData) {

@@ -4,6 +4,7 @@
 // Run after discovery, before personalization.
 
 import { prisma } from "./db";
+import { findWebsiteForBusiness } from "./scrapers/websiteLookup";
 
 const EMAIL_RE = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/gi;
 // junk we don't want to treat as the business email
@@ -116,29 +117,64 @@ export async function enrichWebsite(rawUrl: string): Promise<EnrichmentResult> {
 export async function enrichLead(leadId: string): Promise<void> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error(`lead ${leadId} not found`);
-  if (!lead.website) {
+
+  // Step 1: if no website on the lead, look one up via DDG. This is what
+  // unblocks Indeed-sourced leads, which only have name + city.
+  let website = lead.website;
+  if (!website) {
+    try {
+      const found = await findWebsiteForBusiness(lead.businessName, lead.address);
+      if (found) {
+        website = found.url;
+        await prisma.lead.update({
+          where: { id: leadId },
+          data: { website, notes: `${lead.notes ?? ""} | website found via DDG (rank ${found.rank})`.slice(0, 500) },
+        });
+      }
+    } catch (e) {
+      // Lookup failed — fall through and mark the lead failed below.
+      console.warn(`website lookup failed for ${lead.businessName}: ${(e as Error).message}`);
+    }
+  }
+
+  if (!website) {
     await prisma.lead.update({
       where: { id: leadId },
-      data: { status: "failed", notes: "no website" },
+      data: { status: "failed", notes: "no website found via lookup" },
     });
     return;
   }
 
-  const result = await enrichWebsite(lead.website);
+  // Step 2: scrape the website for emails + signals.
+  const result = await enrichWebsite(website);
+
+  // Preserve any existing enriched JSON (e.g. Indeed signals) and merge.
+  const existing = lead.enriched ? safeParse(lead.enriched) : {};
+  const merged = {
+    ...existing,
+    signals: [...new Set([...(existing?.signals ?? []), ...result.signals])],
+    pagesFetched: result.pagesFetched,
+    textSample: result.textSample,
+  };
+
   await prisma.lead.update({
     where: { id: leadId },
     data: {
       enrichedAt: new Date(),
       primaryEmail: result.primaryEmail ?? null,
-      enriched: JSON.stringify({
-        signals: result.signals,
-        pagesFetched: result.pagesFetched,
-        textSample: result.textSample,
-      }),
+      enriched: JSON.stringify(merged),
       fitScore: result.fitScore,
       status: "enriched",
     },
   });
+}
+
+function safeParse(s: string): any {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return {};
+  }
 }
 
 export async function enrichCampaign(campaignId: string): Promise<{ ok: number; failed: number }> {

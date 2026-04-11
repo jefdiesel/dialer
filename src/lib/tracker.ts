@@ -105,12 +105,13 @@ export async function pushToTracker(draftId: string): Promise<TrackerHandoffResu
 
   // The tracker doesn't return an ID, so we mint our own reference.
   const handoffRef = `sent_${draft.id}_${Date.now()}`;
+  const now = new Date();
   await prisma.draft.update({
     where: { id: draft.id },
     data: {
       status: "handed_off",
       handoffRef,
-      handoffAt: new Date(),
+      handoffAt: now,
     },
   });
   await prisma.lead.update({
@@ -118,5 +119,161 @@ export async function pushToTracker(draftId: string): Promise<TrackerHandoffResu
     data: { status: "handed_off" },
   });
 
+  // Auto-schedule the next touch in the sequence. Step 0 sent → schedule
+  // step 1 (day-3 bump). Step 1 sent → schedule step 2 (day-7 closeout).
+  // Step 2 sent → sequence complete, do nothing.
+  if (draft.step === 0) {
+    const dueAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    await prisma.draft.create({
+      data: {
+        leadId: draft.leadId,
+        channel: draft.channel,
+        subject: null, // generated at send time
+        body: "", // generated at send time
+        status: "scheduled",
+        step: 1,
+        dueAt,
+      },
+    });
+  } else if (draft.step === 1) {
+    // The day-7 is 7 days after the INITIAL send, not 7 days after the bump.
+    const initial = await prisma.draft.findFirst({
+      where: { leadId: draft.leadId, step: 0 },
+    });
+    const initialSentAt = initial?.handoffAt ?? now;
+    const dueAt = new Date(initialSentAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+    await prisma.draft.create({
+      data: {
+        leadId: draft.leadId,
+        channel: draft.channel,
+        subject: null,
+        body: "",
+        status: "scheduled",
+        step: 2,
+        dueAt,
+      },
+    });
+  }
+
   return { ok: true, handoffRef };
+}
+
+// Process all scheduled follow-ups whose dueAt has passed and whose lead
+// hasn't replied. Generates the body via personalize.generateFollowUpBody,
+// then sends via the tracker. Skips anything blocked.
+export async function runDueFollowUps(): Promise<{
+  sent: number;
+  skipped: number;
+  failed: number;
+}> {
+  const { generateFollowUpBody } = await import("./personalize");
+  const now = new Date();
+
+  const dueDrafts = await prisma.draft.findMany({
+    where: {
+      status: "scheduled",
+      dueAt: { lte: now },
+    },
+    include: { lead: true },
+  });
+
+  let sent = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const draft of dueDrafts) {
+    // Skip if the lead replied or was rejected/closed.
+    if (draft.lead.repliedAt || draft.lead.status === "rejected") {
+      await prisma.draft.update({
+        where: { id: draft.id },
+        data: { status: "skipped" },
+      });
+      skipped++;
+      continue;
+    }
+
+    try {
+      const step = draft.step as 1 | 2;
+      const { subject, body } = await generateFollowUpBody(draft.leadId, step);
+
+      // Save body+subject onto the draft so we have a record of what was sent.
+      await prisma.draft.update({
+        where: { id: draft.id },
+        data: { subject, body },
+      });
+
+      const result = await sendViaTracker({
+        to: draft.lead.primaryEmail!,
+        subject,
+        body,
+      });
+
+      if (!result.ok) {
+        await prisma.draft.update({
+          where: { id: draft.id },
+          data: { status: "failed" },
+        });
+        failed++;
+        continue;
+      }
+
+      const handoffRef = `sent_${draft.id}_${Date.now()}`;
+      await prisma.draft.update({
+        where: { id: draft.id },
+        data: {
+          status: "handed_off",
+          handoffRef,
+          handoffAt: new Date(),
+        },
+      });
+      sent++;
+
+      // Schedule the NEXT step if applicable. Step 1 just sent → schedule step 2.
+      if (step === 1) {
+        const initial = await prisma.draft.findFirst({
+          where: { leadId: draft.leadId, step: 0 },
+        });
+        const initialSentAt = initial?.handoffAt ?? new Date();
+        const dueAtNext = new Date(initialSentAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const existingStep2 = await prisma.draft.findFirst({
+          where: { leadId: draft.leadId, step: 2 },
+        });
+        if (!existingStep2) {
+          await prisma.draft.create({
+            data: {
+              leadId: draft.leadId,
+              channel: draft.channel,
+              subject: null,
+              body: "",
+              status: "scheduled",
+              step: 2,
+              dueAt: dueAtNext,
+            },
+          });
+        }
+      }
+    } catch (e) {
+      console.error(`follow-up failed for draft ${draft.id}:`, e);
+      await prisma.draft.update({
+        where: { id: draft.id },
+        data: { status: "failed" },
+      });
+      failed++;
+    }
+  }
+
+  return { sent, skipped, failed };
+}
+
+export async function markLeadReplied(leadId: string): Promise<void> {
+  const now = new Date();
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { status: "replied", repliedAt: now },
+  });
+  // Cancel any future scheduled follow-ups for this lead.
+  await prisma.draft.updateMany({
+    where: { leadId, status: "scheduled" },
+    data: { status: "skipped" },
+  });
 }
