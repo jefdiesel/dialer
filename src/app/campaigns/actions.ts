@@ -7,7 +7,12 @@ import { discoverLeads } from "@/lib/discover";
 import { enrichCampaign } from "@/lib/enrich";
 import { personalizeCampaign, personalizeLead } from "@/lib/personalize";
 import { ADMIN_ROLE_TITLES, scrapeIndeed } from "@/lib/scrapers/indeed";
-import { markLeadReplied, pushToTracker, runDueFollowUps } from "@/lib/tracker";
+import {
+  detectRepliesAndMarkLeads,
+  markLeadReplied,
+  pushToTracker,
+  runDueFollowUps,
+} from "@/lib/tracker";
 
 export async function createCampaign(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -295,6 +300,11 @@ export async function markRepliedAction(leadId: string) {
 
 export async function runDueFollowUpsAction(campaignId: string) {
   await runDueFollowUps();
+  revalidatePath(`/campaigns/${campaignId}`);
+}
+
+export async function detectRepliesAction(campaignId: string) {
+  await detectRepliesAndMarkLeads();
   revalidatePath(`/campaigns/${campaignId}`);
 }
 

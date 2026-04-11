@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- LaunchAgent that hits the dialer's /api/cron/follow-ups endpoint
+         once a day. Drop this into ~/Library/LaunchAgents/ and run:
+           launchctl load ~/Library/LaunchAgents/com.dialer.cron.plist
+
+         To unload:
+           launchctl unload ~/Library/LaunchAgents/com.dialer.cron.plist
+
+         Edit DIALER_URL and CRON_SECRET below to match your setup. -->
+
+    <key>Label</key>
+    <string>com.dialer.cron</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/curl</string>
+        <string>-sS</string>
+        <string>-H</string>
+        <string>Authorization: Bearer REPLACE_WITH_YOUR_CRON_SECRET</string>
+        <string>http://localhost:3000/api/cron/follow-ups</string>
+    </array>
+
+    <!-- Run daily at 9:00 AM local time -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/dialer-cron.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/dialer-cron.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

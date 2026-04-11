@@ -265,6 +265,132 @@ export async function runDueFollowUps(): Promise<{
   return { sent, skipped, failed };
 }
 
+// ============================================================================
+// Reply detection: poll the tracker's /api/track/emails endpoint, find any
+// emails that have received a reply, match them to our drafts by recipient
+// email + subject, and mark the corresponding leads as replied.
+//
+// We don't know the exact response shape of /api/track/emails (it's a self-
+// built tracker, no public docs), so we parse defensively. Common field names
+// for "this email got a reply" we look for: replied, hasReply, repliedAt,
+// responseAt, replyCount > 0, thread.length > 1, replies array non-empty.
+// ============================================================================
+
+type TrackerEmail = {
+  id?: string;
+  to?: string;
+  recipient?: string;
+  subject?: string;
+  sentAt?: string;
+  createdAt?: string;
+  // Possible reply indicators — we check all of them.
+  replied?: boolean;
+  hasReply?: boolean;
+  repliedAt?: string;
+  responseAt?: string;
+  replyCount?: number;
+  replies?: any[];
+  thread?: any[];
+  // Catch-all
+  [k: string]: any;
+};
+
+function looksReplied(e: TrackerEmail): boolean {
+  if (e.replied === true || e.hasReply === true) return true;
+  if (e.repliedAt || e.responseAt) return true;
+  if (typeof e.replyCount === "number" && e.replyCount > 0) return true;
+  if (Array.isArray(e.replies) && e.replies.length > 0) return true;
+  if (Array.isArray(e.thread) && e.thread.length > 1) return true;
+  return false;
+}
+
+function normalizeEmail(s: string | undefined): string {
+  return (s ?? "").trim().toLowerCase();
+}
+
+function normalizeSubject(s: string | undefined): string {
+  return (s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^re:\s*/i, "")
+    .replace(/^fwd?:\s*/i, "")
+    .slice(0, 80);
+}
+
+export async function fetchRepliedTrackerEmails(): Promise<TrackerEmail[]> {
+  const token = await getToken();
+  let res = await fetch(`${TRACKER_BASE}/api/track/emails`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    cachedToken = null;
+    const fresh = await getToken(true);
+    res = await fetch(`${TRACKER_BASE}/api/track/emails`, {
+      headers: { authorization: `Bearer ${fresh}` },
+    });
+  }
+  if (!res.ok) {
+    throw new Error(`tracker /api/track/emails ${res.status}`);
+  }
+  const json = await res.json();
+
+  // Defensive: response could be an array, {emails: []}, {data: []}, {results: []}
+  let emails: TrackerEmail[] = [];
+  if (Array.isArray(json)) emails = json;
+  else if (Array.isArray(json?.emails)) emails = json.emails;
+  else if (Array.isArray(json?.data)) emails = json.data;
+  else if (Array.isArray(json?.results)) emails = json.results;
+  else if (Array.isArray(json?.items)) emails = json.items;
+
+  return emails.filter(looksReplied);
+}
+
+export async function detectRepliesAndMarkLeads(): Promise<{
+  repliedFound: number;
+  matched: number;
+  unmatched: number;
+}> {
+  const replied = await fetchRepliedTrackerEmails();
+  if (replied.length === 0) {
+    return { repliedFound: 0, matched: 0, unmatched: 0 };
+  }
+
+  // Match by (recipient email, normalized subject). We pull recently-sent
+  // drafts that haven't already been linked to a reply.
+  const drafts = await prisma.draft.findMany({
+    where: {
+      status: "handed_off",
+      lead: { repliedAt: null, status: { not: "replied" } },
+    },
+    include: { lead: true },
+  });
+
+  let matched = 0;
+  let unmatched = 0;
+
+  for (const tEmail of replied) {
+    const tTo = normalizeEmail(tEmail.to ?? tEmail.recipient);
+    const tSubj = normalizeSubject(tEmail.subject);
+    if (!tTo || !tSubj) {
+      unmatched++;
+      continue;
+    }
+    const hit = drafts.find((d) => {
+      const lTo = normalizeEmail(d.lead.primaryEmail ?? "");
+      const lSubj = normalizeSubject(d.subject ?? "");
+      return lTo === tTo && lSubj === tSubj;
+    });
+    if (!hit) {
+      unmatched++;
+      continue;
+    }
+    await markLeadReplied(hit.leadId);
+    matched++;
+  }
+
+  return { repliedFound: replied.length, matched, unmatched };
+}
+
 export async function markLeadReplied(leadId: string): Promise<void> {
   const now = new Date();
   await prisma.lead.update({

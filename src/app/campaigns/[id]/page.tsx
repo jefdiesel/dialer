@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
   approveAndPushDraft,
+  detectRepliesAction,
   importLeadsFromCsv,
   markRepliedAction,
   regenerateDraftForLead,
@@ -156,6 +157,11 @@ export default async function CampaignDetailPage({
         <form action={runPersonalization.bind(null, campaign.id)}>
           <button className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
             3. Generate drafts
+          </button>
+        </form>
+        <form action={detectRepliesAction.bind(null, campaign.id)}>
+          <button className="rounded border border-blue-500 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950">
+            ⟳ Detect replies
           </button>
         </form>
         <form action={runDueFollowUpsAction.bind(null, campaign.id)}>
