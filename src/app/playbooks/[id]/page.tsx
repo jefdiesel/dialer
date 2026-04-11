@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { marked } from "marked";
 import { prisma } from "@/lib/db";
 import {
   deletePlaybook,
@@ -21,6 +22,7 @@ export default async function PlaybookDetailPage({
 
   const citations = safeParse(p.citations) ?? [];
   const top3 = safeParse(p.top3UseCases) ?? [];
+  const renderedHtml = marked.parse(p.markdown, { gfm: true, breaks: false }) as string;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -67,9 +69,31 @@ export default async function PlaybookDetailPage({
         {p.status}
       </span>
 
+      <article
+        className="mb-8 rounded-lg border border-zinc-200 bg-white p-8 text-sm leading-relaxed dark:border-zinc-800 dark:bg-zinc-950
+          [&_h1]:mt-0 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight
+          [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-tight
+          [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold
+          [&_p]:my-3
+          [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6
+          [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6
+          [&_li]:my-1
+          [&_strong]:font-semibold [&_strong]:text-zinc-900 dark:[&_strong]:text-zinc-100
+          [&_em]:italic
+          [&_hr]:my-6 [&_hr]:border-zinc-200 dark:[&_hr]:border-zinc-800
+          [&_a]:text-blue-600 [&_a]:underline dark:[&_a]:text-blue-400
+          [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs dark:[&_code]:bg-zinc-800
+          [&_blockquote]:border-l-4 [&_blockquote]:border-zinc-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-zinc-600 dark:[&_blockquote]:border-zinc-700 dark:[&_blockquote]:text-zinc-400"
+        dangerouslySetInnerHTML={{ __html: renderedHtml }}
+      />
+
+      <details className="mb-8">
+        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          Edit source
+        </summary>
       <form
         action={updatePlaybook.bind(null, p.id)}
-        className="space-y-4 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
+        className="mt-3 space-y-4 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
       >
         <div>
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
@@ -118,6 +142,7 @@ export default async function PlaybookDetailPage({
           Save edits
         </button>
       </form>
+      </details>
 
       {citations.length > 0 && (
         <section className="mt-8">
