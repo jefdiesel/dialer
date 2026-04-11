@@ -25,7 +25,7 @@ export default async function PlaybookDetailPage({
   const renderedHtml = marked.parse(p.markdown, { gfm: true, breaks: false }) as string;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-10">
       <Link href="/playbooks" className="text-xs text-zinc-500 hover:underline">
         ← all playbooks
       </Link>
@@ -70,14 +70,14 @@ export default async function PlaybookDetailPage({
       </span>
 
       <article
-        className="mb-8 rounded-lg border border-zinc-200 bg-white p-8 text-sm leading-relaxed dark:border-zinc-800 dark:bg-zinc-950
-          [&_h1]:mt-0 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight
-          [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-tight
-          [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold
-          [&_p]:my-3
-          [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6
-          [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6
-          [&_li]:my-1
+        className="mb-8 rounded-lg border border-zinc-200 bg-white p-10 text-lg leading-8 dark:border-zinc-800 dark:bg-zinc-950
+          [&_h1]:mt-0 [&_h1]:mb-6 [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:tracking-tight
+          [&_h2]:mt-12 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:tracking-tight
+          [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold
+          [&_p]:my-4
+          [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-7
+          [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-7
+          [&_li]:my-2
           [&_strong]:font-semibold [&_strong]:text-zinc-900 dark:[&_strong]:text-zinc-100
           [&_em]:italic
           [&_hr]:my-6 [&_hr]:border-zinc-200 dark:[&_hr]:border-zinc-800
