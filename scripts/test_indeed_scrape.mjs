@@ -6,8 +6,20 @@ import { chromium } from "playwright";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
-const url =
-  "https://www.indeed.com/jobs?q=administrative+assistant&l=Austin%2C+TX&sort=date&fromage=7";
+const titles = [
+  "administrative assistant",
+  "office manager",
+  "office coordinator",
+  "office admin",
+  "executive assistant",
+  "receptionist",
+  "front desk",
+  "intake coordinator",
+  "billing clerk",
+  "operations coordinator",
+];
+const query = titles.map((t) => (t.includes(" ") ? `"${t}"` : t)).join(" OR ");
+const url = `https://www.indeed.com/jobs?q=${encodeURIComponent(query)}&l=${encodeURIComponent("Austin, TX")}&sort=date&fromage=7`;
 
 console.log("launching chromium...");
 const browser = await chromium.launch({

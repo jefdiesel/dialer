@@ -68,34 +68,45 @@ export default async function CampaignDetailPage({
             "use server";
             await scrapeIndeedForCampaign(campaign.id, fd);
           }}
-          className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3"
+          className="mt-3 space-y-2"
         >
-          <p className="text-zinc-500 sm:col-span-3">
+          <p className="text-zinc-500">
             Any business posting an admin / office / intake role is a shop drowning in paperwork.
-            The job post becomes the cold email hook. One Indeed search per run, ~20–25 results.
-            Takes 10–15 seconds.
+            One search runs all titles below as a single Indeed query (OR'd together) so you
+            catch every variation in one shot. Takes 10–15 seconds.
           </p>
-          <input
-            name="query"
-            defaultValue="administrative assistant"
-            placeholder="Job title"
-            className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <input
-            name="location"
-            defaultValue="Austin, TX"
-            placeholder="City, State"
-            className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <input
-            name="maxResults"
-            type="number"
-            defaultValue={25}
-            min={5}
-            max={50}
-            className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <button className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 sm:col-span-3 sm:justify-self-start">
+          <label className="block">
+            <span className="mb-1 block text-zinc-500">Job titles (comma or newline separated)</span>
+            <textarea
+              name="titles"
+              rows={5}
+              defaultValue={`administrative assistant, office manager, office coordinator, office admin, office administrator, executive assistant, receptionist, front desk, intake coordinator, billing clerk, billing specialist, operations coordinator, data entry, file clerk, scheduling coordinator`}
+              className="w-full rounded border border-zinc-300 px-2 py-1 font-mono dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          </label>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-zinc-500">Location</span>
+              <input
+                name="location"
+                defaultValue="Austin, TX"
+                placeholder="City, State"
+                className="w-full rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-zinc-500">Max results</span>
+              <input
+                name="maxResults"
+                type="number"
+                defaultValue={25}
+                min={5}
+                max={50}
+                className="w-full rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+              />
+            </label>
+          </div>
+          <button className="rounded bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
             Scrape Indeed
           </button>
         </form>

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { discoverLeads } from "@/lib/discover";
 import { enrichCampaign } from "@/lib/enrich";
 import { personalizeCampaign, personalizeLead } from "@/lib/personalize";
-import { scrapeIndeed } from "@/lib/scrapers/indeed";
+import { ADMIN_ROLE_TITLES, scrapeIndeed } from "@/lib/scrapers/indeed";
 import { pushToTracker } from "@/lib/tracker";
 
 export async function createCampaign(formData: FormData) {
@@ -66,12 +66,21 @@ export async function approveAndPushDraft(draftId: string) {
 // assistant — ~$42k loaded cost"). No owner/email yet — those get filled in
 // by running the standard website enrichment pass afterward.
 export async function scrapeIndeedForCampaign(campaignId: string, formData: FormData) {
-  const query = String(formData.get("query") ?? "").trim();
+  // The form passes a comma- or newline-separated list of titles. Empty
+  // list = use the built-in admin role default.
+  const rawTitles = String(formData.get("titles") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
   const maxResults = Number(formData.get("maxResults") ?? 25);
-  if (!query || !location) throw new Error("query and location are required");
+  if (!location) throw new Error("location is required");
 
-  const jobs = await scrapeIndeed({ query, location, maxResults });
+  const titles = rawTitles
+    ? rawTitles
+        .split(/[,\n]/)
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : ADMIN_ROLE_TITLES;
+
+  const jobs = await scrapeIndeed({ query: titles, location, maxResults });
 
   // Dedupe by company name within this scrape AND against existing leads.
   const seen = new Set<string>();
@@ -91,7 +100,7 @@ export async function scrapeIndeedForCampaign(campaignId: string, formData: Form
       source: "indeed",
       signals: ["hiring", "intent:job-posting"],
       indeed: {
-        query,
+        searchedTitles: titles,
         jobTitle: job.jobTitle,
         jobUrl: job.url,
         postedDaysAgo: job.postedDaysAgo,

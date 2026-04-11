@@ -28,10 +28,45 @@ export type IndeedJob = {
 };
 
 type ScrapeOptions = {
-  query: string; // e.g. "administrative assistant"
+  // Either a single search string OR an array of job titles to OR together.
+  // Real businesses post a dozen variations for the same role
+  // (office manager, office coordinator, receptionist, intake coordinator,
+  // executive assistant, front desk, etc.) — use the array form to catch
+  // all of them in one search.
+  query: string | string[];
   location: string; // e.g. "Austin, TX"
   maxResults?: number; // cap, default 25
 };
+
+// Indeed supports OR queries. Quoted phrases match multi-word titles exactly,
+// then we OR the whole list together. Anything that smells like an admin /
+// office / paperwork role is in the default set.
+export const ADMIN_ROLE_TITLES = [
+  "administrative assistant",
+  "office manager",
+  "office coordinator",
+  "office admin",
+  "office administrator",
+  "executive assistant",
+  "receptionist",
+  "front desk",
+  "intake coordinator",
+  "billing clerk",
+  "billing specialist",
+  "operations coordinator",
+  "data entry",
+  "file clerk",
+  "scheduling coordinator",
+];
+
+function buildIndeedQuery(query: string | string[]): string {
+  if (typeof query === "string") return query;
+  if (query.length === 1) return query[0];
+  // Quote each term that contains a space, then OR them together.
+  return query
+    .map((t) => (t.includes(" ") ? `"${t}"` : t))
+    .join(" OR ");
+}
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -57,7 +92,8 @@ function parsePostedDaysAgo(text: string | undefined): number | null {
 
 export async function scrapeIndeed(opts: ScrapeOptions): Promise<IndeedJob[]> {
   const maxResults = opts.maxResults ?? 25;
-  const url = `https://www.indeed.com/jobs?q=${encodeURIComponent(opts.query)}&l=${encodeURIComponent(opts.location)}&sort=date&fromage=7`;
+  const queryString = buildIndeedQuery(opts.query);
+  const url = `https://www.indeed.com/jobs?q=${encodeURIComponent(queryString)}&l=${encodeURIComponent(opts.location)}&sort=date&fromage=7`;
 
   let browser: Browser | null = null;
   try {
