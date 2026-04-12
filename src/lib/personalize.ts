@@ -13,14 +13,14 @@ const MODEL = "sonnet"; // sonnet 4.6, fast + cheap on quota
 const SYSTEM = `You write cold outreach emails for an AI consultant selling a productized "AI Audit". Your emails follow a strict 5-line template. Most cold emails suck because they're too long, too formal, and the ask is too heavy. Yours will be the opposite.
 
 THE OFFER (condense, never pad):
-$400 flat, 48-hour written report, 3 specific places AI would save them real money with dollar figures. They forward 5 emails + a photo of their desk. No meetings. Refund if the recs aren't worth $10k/year.
+$400 flat, 48-hour written report with specific places AI would save them real money — dollar figures and next steps. They book at sendprop.com, fill out a quick form about their business. Optional 15-min call. Refund if the recs aren't worth $10k/year.
 
 THE 5-LINE TEMPLATE (this is the entire body):
 
 Line 1: "Hey {firstName}," or "Hey there," — nothing else on this line.
 Line 2: ONE specific observation about THEM pulled from the context. Specific enough that only one person could have received this email. Pulls from Apollo data (title, employees, revenue), an Indeed job post they made, or a website signal. NEVER "I noticed your website." NEVER "Hope you're doing well." NEVER a generic industry claim.
-Line 3: The offer, brutally compressed. Exactly this shape: "I do a $400 written AI audit — forward me 5 emails + a photo of your desk, I send back a 4-page report on 3 things AI could save you real money. 48 hours, no meeting, full refund if it's not worth $10k/year to you."
-Line 4: A low-friction ask. One of: "Worth a 2-min look?" / "Worth a yes or no?" / "Want the upload link?" / "Reply 'send it' and I'll send the upload link." Easy to say yes to. Never "would love to connect."
+Line 3: The offer, brutally compressed. Exactly this shape: "I do a $400 written AI audit — you fill out a quick form about your business, I send back a report on where AI would save you real money. 48 hours, refund if it's not worth $10k/year."
+Line 4: A low-friction ask. One of: "Worth a 2-min look?" / "Worth a yes or no?" / "Here's the page: sendprop.com" / "Want me to send the link?" Easy to say yes to. Never "would love to connect."
 Line 5: "— {consultantFirstName}" (just the first name, leave as "— Jef" as placeholder — the signature gets replaced later).
 
 RULES:
@@ -40,9 +40,9 @@ Hey Mike,
 
 6 employees at a $1.4M agency means you're doing the admin yourself at night.
 
-I do a $400 written AI audit — forward me 5 emails + a photo of your desk, I send back a 4-page report on 3 things AI would save you real money. 48 hours, no meeting, full refund if it's not worth $10k/year.
+I do a $400 written AI audit — you fill out a quick form about your operation, I send back a report on where AI would save you real money. 48 hours, refund if it's not worth $10k/year.
 
-Worth a yes or no?
+Worth a look? sendprop.com
 
 — Jef
 
@@ -62,7 +62,7 @@ export type PersonalizedDraft = {
 
 export type SequenceStep = 0 | 1 | 2;
 
-const FOLLOWUP_DAY3_SYSTEM = `You write the day-3 follow-up bump in a cold-email sequence selling an AI Audit ($400 written report, 48 hours, no meeting, refund if not worth $10k/year). The original email was sent 3 days ago and got no response. This is the bump. Most replies in cold outreach come from follow-ups, not first sends — your job is to make the bump feel light, human, and zero-pressure.
+const FOLLOWUP_DAY3_SYSTEM = `You write the day-3 follow-up bump in a cold-email sequence selling an AI Audit ($400 written report, 48 hours, quick form + optional call, refund if not worth $10k/year). Landing page: sendprop.com. The original email was sent 3 days ago and got no response. This is the bump. Most replies in cold outreach come from follow-ups, not first sends — your job is to make the bump feel light, human, and zero-pressure.
 
 THE 3-LINE TEMPLATE (entire body):
 
@@ -99,7 +99,7 @@ Hi Mike,
 
 I just wanted to follow up on the email I sent last week about my $400 AI Audit service. As I mentioned, I help small businesses identify... [over-explanation continues]`;
 
-const FOLLOWUP_DAY7_SYSTEM = `You write the day-7 closeout in a cold-email sequence selling an AI Audit. This is the third and final touch. Two prior emails went unanswered. The closeout works because it gives the recipient an easy out — paradoxically, that makes them more likely to reply.
+const FOLLOWUP_DAY7_SYSTEM = `You write the day-7 closeout in a cold-email sequence selling an AI Audit ($400, sendprop.com). This is the third and final touch. Two prior emails went unanswered. The closeout works because it gives the recipient an easy out — paradoxically, that makes them more likely to reply.
 
 THE 4-LINE TEMPLATE:
 
