@@ -13,28 +13,18 @@ export default async function CampaignsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      <nav className="flex items-center gap-4 text-xs text-zinc-500 mb-4">
-        <a
-          href="https://sendprop.com"
-          target="_blank"
-          rel="noreferrer"
-          className="hover:underline"
-        >
-          sendprop.com ↗
-        </a>
-        <span className="text-zinc-300">|</span>
-        <a
-          href="https://dashboard.stripe.com"
-          target="_blank"
-          rel="noreferrer"
-          className="hover:underline"
-        >
-          Stripe ↗
-        </a>
-        <span className="text-zinc-300">|</span>
-        <Link href="/playbooks" className="hover:underline">
+      <nav className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400 mb-6">
+        <Link href="/playbooks" className="hover:text-zinc-900 dark:hover:text-zinc-100">
           Playbooks
         </Link>
+        <span className="text-zinc-300 dark:text-zinc-700">|</span>
+        <a href="https://sendprop.com" target="_blank" rel="noreferrer" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+          sendprop.com ↗
+        </a>
+        <span className="text-zinc-300 dark:text-zinc-700">|</span>
+        <a href="https://dashboard.stripe.com" target="_blank" rel="noreferrer" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+          Stripe ↗
+        </a>
       </nav>
       <header className="mb-8 flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
