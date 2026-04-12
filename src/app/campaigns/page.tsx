@@ -12,8 +12,8 @@ export default async function CampaignsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <nav className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400 mb-6">
+    <div className="mx-auto max-w-7xl px-6 py-10">
+      <nav className="flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400 mb-6">
         <Link href="/playbooks" className="hover:text-zinc-900 dark:hover:text-zinc-100">
           Playbooks
         </Link>
@@ -59,7 +59,7 @@ export default async function CampaignsPage() {
             defaultValue={DEFAULT_AUDIT_PITCH}
             required
             rows={10}
-            className="rounded border border-zinc-300 px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900 sm:col-span-2"
+            className="rounded border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900 sm:col-span-2"
           />
           <button
             type="submit"
@@ -84,11 +84,11 @@ export default async function CampaignsPage() {
             >
               <div>
                 <div className="font-medium">{c.name}</div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-sm text-zinc-500">
                   {c.niche} · {c.location}
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-xs text-zinc-500">
+              <div className="flex items-center gap-4 text-sm text-zinc-500">
                 <span>{c._count.leads} leads</span>
                 <span className="rounded bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
                   {c.status}

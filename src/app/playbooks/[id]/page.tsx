@@ -25,14 +25,14 @@ export default async function PlaybookDetailPage({
   const renderedHtml = marked.parse(p.markdown, { gfm: true, breaks: false }) as string;
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <Link href="/playbooks" className="text-xs text-zinc-500 hover:underline">
+    <div className="mx-auto max-w-7xl px-6 py-10">
+      <Link href="/playbooks" className="text-sm text-zinc-500 hover:underline">
         ← all playbooks
       </Link>
       <header className="mt-2 mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{p.name}</h1>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500">
             slug: <code>{p.industrySlug}</code> · model: {p.model ?? "?"} ·
             updated {p.updatedAt.toISOString().slice(0, 10)}
           </p>
@@ -40,19 +40,19 @@ export default async function PlaybookDetailPage({
         <div className="flex shrink-0 gap-2">
           {p.status === "draft" ? (
             <form action={publishPlaybook.bind(null, p.id)}>
-              <button className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+              <button className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">
                 Publish
               </button>
             </form>
           ) : (
             <form action={unpublishPlaybook.bind(null, p.id)}>
-              <button className="rounded border border-zinc-300 px-3 py-1.5 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900">
+              <button className="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900">
                 Unpublish
               </button>
             </form>
           )}
           <form action={deletePlaybook.bind(null, p.id)}>
-            <button className="rounded border border-red-300 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
+            <button className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
               Delete
             </button>
           </form>
@@ -60,7 +60,7 @@ export default async function PlaybookDetailPage({
       </header>
 
       <span
-        className={`mb-6 inline-block rounded px-2 py-0.5 text-xs ${
+        className={`mb-6 inline-block rounded px-2 py-0.5 text-sm ${
           p.status === "published"
             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
             : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
@@ -82,13 +82,13 @@ export default async function PlaybookDetailPage({
           [&_em]:italic
           [&_hr]:my-6 [&_hr]:border-zinc-200 dark:[&_hr]:border-zinc-800
           [&_a]:text-blue-600 [&_a]:underline dark:[&_a]:text-blue-400
-          [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs dark:[&_code]:bg-zinc-800
+          [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-sm dark:[&_code]:bg-zinc-800
           [&_blockquote]:border-l-4 [&_blockquote]:border-zinc-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-zinc-600 dark:[&_blockquote]:border-zinc-700 dark:[&_blockquote]:text-zinc-400"
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 
       <details className="mb-8">
-        <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wider text-zinc-500">
           Edit source
         </summary>
       <form
@@ -96,7 +96,7 @@ export default async function PlaybookDetailPage({
         className="mt-3 space-y-4 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
       >
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="mb-1 block text-sm font-semibold uppercase tracking-wider text-zinc-500">
             Name
           </label>
           <input
@@ -106,7 +106,7 @@ export default async function PlaybookDetailPage({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="mb-1 block text-sm font-semibold uppercase tracking-wider text-zinc-500">
             Summary (used to target outreach — never quoted in emails)
           </label>
           <textarea
@@ -117,25 +117,25 @@ export default async function PlaybookDetailPage({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="mb-1 block text-sm font-semibold uppercase tracking-wider text-zinc-500">
             Top 3 use cases (JSON, fed to personalizer for fit only)
           </label>
           <textarea
             name="top3UseCases"
             defaultValue={JSON.stringify(top3, null, 2)}
             rows={8}
-            className="w-full rounded border border-zinc-300 px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="mb-1 block text-sm font-semibold uppercase tracking-wider text-zinc-500">
             Playbook (Markdown — the consult deliverable)
           </label>
           <textarea
             name="markdown"
             defaultValue={p.markdown}
             rows={30}
-            className="w-full rounded border border-zinc-300 px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
+            className="w-full rounded border border-zinc-300 px-3 py-2 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
         <button className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">
@@ -153,7 +153,7 @@ export default async function PlaybookDetailPage({
             {citations.map((c: any, i: number) => (
               <li
                 key={i}
-                className="rounded border border-zinc-200 bg-white p-3 text-xs dark:border-zinc-800 dark:bg-zinc-950"
+                className="rounded border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950"
               >
                 <a
                   href={c.url}
