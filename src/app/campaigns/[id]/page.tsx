@@ -46,10 +46,30 @@ export default async function CampaignDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <Link href="/campaigns" className="text-xs text-zinc-500 hover:underline">
-        ← all campaigns
-      </Link>
-      <header className="mt-2 mb-6">
+      <nav className="flex items-center gap-4 text-xs text-zinc-500 mb-4">
+        <Link href="/campaigns" className="hover:underline">
+          ← all campaigns
+        </Link>
+        <span className="text-zinc-300">|</span>
+        <a
+          href="https://sendprop.com"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline"
+        >
+          sendprop.com ↗
+        </a>
+        <span className="text-zinc-300">|</span>
+        <a
+          href="https://dashboard.stripe.com"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline"
+        >
+          Stripe ↗
+        </a>
+      </nav>
+      <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">{campaign.name}</h1>
         <p className="mt-1 text-sm text-zinc-500">
           {campaign.niche} · {campaign.location} · status: {campaign.status}

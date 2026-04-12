@@ -6,7 +6,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function makeClient() {
-  const url = process.env.DATABASE_URL ?? "file:./dev.db";
+  const raw = process.env.DATABASE_URL ?? "file:./dev.db";
+  // Resolve relative paths to absolute so the DB works regardless of cwd
+  const url = raw.startsWith("file:./")
+    ? `file:${require("path").resolve(process.cwd(), raw.slice(5))}`
+    : raw;
   const adapter = new PrismaBetterSqlite3({ url });
   return new PrismaClient({ adapter });
 }
