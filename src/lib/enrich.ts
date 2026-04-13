@@ -183,7 +183,6 @@ export async function enrichCampaign(campaignId: string): Promise<{ ok: number; 
   });
   let ok = 0;
   let failed = 0;
-  // Sequential to be polite to target sites; can parallelize later.
   for (const lead of leads) {
     try {
       await enrichLead(lead.id);
@@ -195,6 +194,8 @@ export async function enrichCampaign(campaignId: string): Promise<{ ok: number; 
         data: { status: "failed", notes: e instanceof Error ? e.message : String(e) },
       });
     }
+    // Delay between leads to avoid DDG rate limiting
+    await new Promise((r) => setTimeout(r, 1500));
   }
   return { ok, failed };
 }

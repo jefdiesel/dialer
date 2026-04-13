@@ -110,18 +110,32 @@ export async function findWebsiteForBusiness(
   const query = [name, location].filter(Boolean).join(" ");
   const params = new URLSearchParams({ q: query });
 
-  const res = await fetch(`${DDG_URL}?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      "user-agent": UA,
-      accept: "text/html,application/xhtml+xml",
-      "accept-language": "en-US,en;q=0.9",
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`DuckDuckGo HTML returned ${res.status}`);
+  let html = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 3000));
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    const res = await fetch(`${DDG_URL}?${params.toString()}`, {
+      method: "GET",
+      signal: ctl.signal,
+      headers: {
+        "user-agent": UA,
+        accept: "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.9",
+      },
+    });
+    clearTimeout(timer);
+    if (res.status === 429 || res.status === 403) {
+      // Rate limited — wait and retry
+      continue;
+    }
+    if (!res.ok) {
+      throw new Error(`DuckDuckGo HTML returned ${res.status}`);
+    }
+    html = await res.text();
+    break;
   }
-  const html = await res.text();
+  if (!html) return null; // all retries exhausted
 
   const urls = extractResultUrls(html);
   let rank = 0;
