@@ -25,7 +25,7 @@ export default async function PlaybookDetailPage({
   const renderedHtml = marked.parse(p.markdown, { gfm: true, breaks: false }) as string;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-10">
       <Link href="/playbooks" className="text-sm text-zinc-500 hover:underline">
         ← all playbooks
       </Link>

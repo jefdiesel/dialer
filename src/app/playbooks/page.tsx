@@ -10,7 +10,7 @@ export default async function PlaybooksPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-8 flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Industry playbooks</h1>
         <Link href="/campaigns" className="text-sm text-zinc-500 hover:underline">
@@ -57,7 +57,7 @@ export default async function PlaybooksPage() {
             >
               <div className="min-w-0">
                 <div className="font-medium">{p.name}</div>
-                <div className="truncate text-sm text-zinc-500">{p.summary}</div>
+                <div className="text-sm text-zinc-500 line-clamp-1">{p.summary}</div>
               </div>
               <span
                 className={`rounded px-2 py-0.5 text-sm ${
